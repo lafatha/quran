@@ -90,7 +90,7 @@ function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
             : "bg-white text-gray-900 rounded-2xl rounded-bl-sm shadow-sm border border-gray-100"
         }`}
       >
-        <FormattedMessage content={message.content} />
+        <FormattedMessage content={message.content} isUser={isUser} />
         {isStreaming && (
           <span className="inline-block w-0.5 h-3.5 bg-gray-400 ml-0.5 align-middle animate-pulse" />
         )}
@@ -108,49 +108,208 @@ function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
 
 interface FormattedMessageProps {
   content: string;
+  isUser: boolean;
 }
 
-function FormattedMessage({ content }: FormattedMessageProps) {
-  const lines = content.split("\n");
+function renderInlineFormatting(text: string, isUser: boolean): React.ReactNode[] {
+  const segments = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+
+  return segments.map((segment, index) => {
+    const isBold =
+      segment.startsWith("**") && segment.endsWith("**") && segment.length > 4;
+    const isItalic =
+      segment.startsWith("*") && segment.endsWith("*") && !isBold && segment.length > 2;
+
+    if (isBold) {
+      return (
+        <strong key={index} className={`font-semibold ${isUser ? "text-white" : "text-gray-900"}`}>
+          {segment.slice(2, -2)}
+        </strong>
+      );
+    }
+
+    if (isItalic) {
+      return (
+        <em key={index} className={`italic ${isUser ? "text-white/90" : "text-gray-800"}`}>
+          {segment.slice(1, -1)}
+        </em>
+      );
+    }
+
+    return <span key={index}>{segment}</span>;
+  });
+}
+
+function FormattedMessage({ content, isUser }: FormattedMessageProps) {
+  const normalizedContent = content.replace(/\r\n/g, "\n");
+  const rawLines = normalizedContent.split("\n");
+
+  // ── Pre-process: group consecutive table rows into table blocks ──────────
+  type LineSegment = { type: "line"; value: string; index: number };
+  type TableSegment = { type: "table"; rows: string[]; index: number };
+  type Segment = LineSegment | TableSegment;
+
+  const segments: Segment[] = [];
+  let si = 0;
+  while (si < rawLines.length) {
+    const t = rawLines[si].trim();
+    if (t.startsWith("|") && t.endsWith("|")) {
+      const tableRows: string[] = [];
+      const startIdx = si;
+      while (si < rawLines.length && rawLines[si].trim().startsWith("|") && rawLines[si].trim().endsWith("|")) {
+        tableRows.push(rawLines[si].trim());
+        si++;
+      }
+      segments.push({ type: "table", rows: tableRows, index: startIdx });
+    } else {
+      segments.push({ type: "line", value: rawLines[si], index: si });
+      si++;
+    }
+  }
+
+  function parseTableRow(row: string): string[] {
+    return row
+      .split("|")
+      .map((cell) => cell.trim())
+      .filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+  }
+
+  function renderTableSegment(rows: string[], key: number) {
+    // Drop separator rows like | --- | :-- | etc.
+    const dataRows = rows.filter((row) => !/^\|[\s|:\-]+\|$/.test(row));
+    if (dataRows.length === 0) return null;
+    const [headerRow, ...bodyRows] = dataRows;
+    const headers = parseTableRow(headerRow);
+    const bodyData = bodyRows.map(parseTableRow);
+    return (
+      <div key={key} className="overflow-x-auto w-full my-2 rounded-lg border border-gray-200">
+        <table className="text-xs border-collapse w-full">
+          <thead>
+            <tr className="bg-gray-100">
+              {headers.map((cell, ci) => (
+                <th
+                  key={ci}
+                  className="border-b border-gray-200 px-2 py-1.5 font-semibold text-gray-700 text-left whitespace-nowrap"
+                >
+                  {renderInlineFormatting(cell, false)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {bodyData.map((row, ri) => (
+              <tr key={ri} className={ri % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                {row.map((cell, ci) => (
+                  <td key={ci} className="border-b border-gray-100 px-2 py-1.5 text-gray-700 leading-snug">
+                    {renderInlineFormatting(cell, false)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   return (
-    <span className="block space-y-1">
-      {lines.map((line, i) => {
-        if (line.trim() === "") {
-          return <span key={i} className="block h-2" />;
+    <div className="space-y-1.5 break-words">
+      {segments.map((seg) => {
+        if (seg.type === "table") {
+          return renderTableSegment(seg.rows, seg.index);
         }
 
-        // Arabic text line — apply Arabic font and RTL direction
-        if (/^[\u0600-\u06FF\u0750-\u077F]/.test(line.trim())) {
+        const { value: line, index } = seg;
+        const trimmed = line.trim();
+
+        if (trimmed === "") {
+          return <div key={index} className="h-2" />;
+        }
+
+        const arabicWithLabelMatch = trimmed.match(/^Arab\s*:?[\s]*(.+)$/i);
+        const arabicText = arabicWithLabelMatch ? arabicWithLabelMatch[1].trim() : trimmed;
+        const isArabicLine =
+          /^[\u0600-\u06FF\u0750-\u077F]/.test(arabicText) ||
+          /^[\u0600-\u06FF\u0750-\u077F]/.test(trimmed);
+
+        if (isArabicLine) {
           return (
-            <span key={i} className="block text-right leading-loose text-base font-arabic" dir="rtl">
-              {line}
-            </span>
+            <p
+              key={index}
+              className={`text-right leading-loose text-lg font-arabic ${isUser ? "text-white" : "text-gray-900"}`}
+              dir="rtl"
+            >
+              {arabicText}
+            </p>
           );
         }
 
-        // Bullet point
-        if (line.startsWith("•")) {
+        const headingMatch = trimmed.match(/^#{1,3}\s+(.+)$/);
+        if (headingMatch) {
           return (
-            <span key={i} className="flex gap-2">
-              <span className="text-gray-400 flex-shrink-0">•</span>
-              <span>{line.slice(1).trim()}</span>
-            </span>
+            <p key={index} className={`font-semibold mt-2 ${isUser ? "text-white" : "text-gray-900"}`}>
+              {renderInlineFormatting(headingMatch[1], isUser)}
+            </p>
           );
         }
 
-        // Section header — lines in ALL CAPS or ending with ":"
-        if (/^[A-Z\s]{4,}$/.test(line.trim()) || /^.{3,40}:$/.test(line.trim())) {
+        if (/^-{3,}$/.test(trimmed)) {
+          return <div key={index} className={`h-px my-2 ${isUser ? "bg-white/30" : "bg-gray-200"}`} />;
+        }
+
+        const quoteMatch = trimmed.match(/^>\s*(.+)$/);
+        if (quoteMatch) {
           return (
-            <span key={i} className="block font-semibold text-gray-900 mt-2">
-              {line}
-            </span>
+            <div
+              key={index}
+              className={`border-l-2 pl-3 ${isUser ? "border-white/40 text-white/90" : "border-gray-300 text-gray-700"}`}
+            >
+              {renderInlineFormatting(quoteMatch[1], isUser)}
+            </div>
           );
         }
 
-        return <span key={i} className="block">{line}</span>;
+        const numberedMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+        if (numberedMatch) {
+          return (
+            <div key={index} className="flex gap-2">
+              <span className={`flex-shrink-0 w-5 text-right ${isUser ? "text-white/80" : "text-gray-500"}`}>
+                {numberedMatch[1]}.
+              </span>
+              <span className={`flex-1 leading-relaxed ${isUser ? "text-white" : "text-gray-800"}`}>
+                {renderInlineFormatting(numberedMatch[2], isUser)}
+              </span>
+            </div>
+          );
+        }
+
+        const bulletMatch = trimmed.match(/^(?:[-•*])\s+(.+)$/);
+        if (bulletMatch) {
+          return (
+            <div key={index} className="flex gap-2">
+              <span className={`flex-shrink-0 ${isUser ? "text-white/80" : "text-gray-400"}`}>•</span>
+              <span className={`flex-1 leading-relaxed ${isUser ? "text-white" : "text-gray-800"}`}>
+                {renderInlineFormatting(bulletMatch[1], isUser)}
+              </span>
+            </div>
+          );
+        }
+
+        if (/^[A-Z\s]{4,}$/.test(trimmed) || /^.{3,60}:$/.test(trimmed)) {
+          return (
+            <p key={index} className={`font-semibold mt-2 ${isUser ? "text-white" : "text-gray-900"}`}>
+              {renderInlineFormatting(trimmed, isUser)}
+            </p>
+          );
+        }
+
+        return (
+          <p key={index} className={`leading-relaxed ${isUser ? "text-white" : "text-gray-800"}`}>
+            {renderInlineFormatting(trimmed, isUser)}
+          </p>
+        );
       })}
-    </span>
+    </div>
   );
 }
 
