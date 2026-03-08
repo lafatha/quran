@@ -400,95 +400,85 @@ function Sidebar({
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          {/* Overlay */}
-          <motion.div
-            key="overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/40 z-40"
-            onClick={onClose}
-          />
-
-          {/* Drawer */}
-          <motion.aside
-            key="drawer"
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "spring", stiffness: 340, damping: 32 }}
-            className="fixed top-0 left-1/2 -translate-x-1/2 h-full w-full max-w-[390px] z-50 pointer-events-none"
-          >
-            <div className="h-full w-[78%] max-w-[300px] bg-white flex flex-col shadow-2xl pointer-events-auto">
-              {/* Drawer header */}
-              <div className="flex items-center justify-between px-4 pt-5 pb-4 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center">
-                    <Sparkles className="w-3.5 h-3.5 text-white" />
-                  </div>
-                  <span className="font-bold text-sm text-gray-900">Mufassir</span>
+        <motion.aside
+          key="drawer"
+          initial={{ x: -32, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -32, opacity: 0 }}
+          transition={{ duration: 0.24, ease: "easeOut" }}
+          className="absolute inset-y-0 left-0 z-10 w-[78%] max-w-[300px] bg-[#f5f2ea]"
+        >
+          <div className="flex h-full flex-col border-r border-black/5 bg-[#f5f2ea]">
+            {/* Drawer header */}
+            <div className="flex items-center justify-between px-4 pt-5 pb-4 border-b border-black/5">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-3.5 h-3.5 text-white" />
                 </div>
-                <button
-                  onClick={onClose}
-                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-                >
-                  <X className="w-4 h-4 text-gray-500" />
-                </button>
+                <span className="font-bold text-sm text-gray-900">Mufassir</span>
               </div>
-
-              {/* New Chat button */}
-              <div className="px-3 pt-3 pb-2">
-                <button
-                  onClick={onNewChat}
-                  className="flex items-center gap-2 w-full bg-black text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-gray-900 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Chat Baru</span>
-                </button>
-              </div>
-
-              {/* History */}
-              <div className="flex-1 overflow-y-auto px-3 pb-6">
-                {conversations.length === 0 ? (
-                  <p className="text-xs text-text-secondary text-center mt-8">
-                    Belum ada riwayat percakapan
-                  </p>
-                ) : (
-                  groupOrder.map((label) => {
-                    const items = grouped[label];
-                    if (!items || items.length === 0) return null;
-                    return (
-                      <div key={label} className="mt-4">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary px-1 mb-1">
-                          {label}
-                        </p>
-                        {items.map((conv) => (
-                          <button
-                            key={conv.id}
-                            onClick={() => {
-                              onSelectConversation(conv.id);
-                              onClose();
-                            }}
-                            className={`flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors mb-0.5 ${
-                              conv.id === activeConversationId
-                                ? "bg-gray-100 font-semibold text-gray-900"
-                                : "text-gray-700 hover:bg-gray-50"
-                            }`}
-                          >
-                            <MessageSquare className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                            <span className="truncate">{conv.title}</span>
-                          </button>
-                        ))}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors"
+              >
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
             </div>
-          </motion.aside>
-        </>
+
+            {/* New Chat button */}
+            <div className="px-3 pt-3 pb-2">
+              <button
+                onClick={onNewChat}
+                className="flex items-center gap-2 w-full bg-black text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-gray-900 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Chat Baru</span>
+              </button>
+            </div>
+
+            {/* History */}
+            <div className="flex-1 overflow-y-auto px-3 pb-6">
+              {conversations.length === 0 ? (
+                <p className="text-xs text-text-secondary text-center mt-8">
+                  Belum ada riwayat percakapan
+                </p>
+              ) : (
+                groupOrder.map((label) => {
+                  const items = grouped[label];
+                  if (!items || items.length === 0) return null;
+                  return (
+                    <div key={label} className="mt-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary px-1 mb-1">
+                        {label}
+                      </p>
+                      {items.map((conv) => (
+                        <button
+                          key={conv.id}
+                          onClick={() => {
+                            onSelectConversation(conv.id);
+                            onClose();
+                          }}
+                          className={`flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors mb-0.5 ${
+                            conv.id === activeConversationId
+                              ? "bg-black text-white font-semibold"
+                              : "text-gray-700 hover:bg-white/80"
+                          }`}
+                        >
+                          <MessageSquare
+                            className={`w-3.5 h-3.5 flex-shrink-0 ${
+                              conv.id === activeConversationId ? "text-white/80" : "text-gray-400"
+                            }`}
+                          />
+                          <span className="truncate">{conv.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </motion.aside>
       )}
     </AnimatePresence>
   );
@@ -892,7 +882,7 @@ export default function AIChatPage() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-[100dvh] max-h-[100dvh] bg-background flex flex-col relative overflow-hidden">
+    <div className="h-[100dvh] max-h-[100dvh] bg-[#f5f2ea] relative overflow-hidden">
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -906,63 +896,80 @@ export default function AIChatPage() {
         onNewChat={handleNewChat}
       />
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-4 pt-4 pb-3 bg-background z-10">
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
-        >
-          <Menu className="w-5 h-5 text-gray-700" />
-        </button>
+      <motion.div
+        animate={{
+          x: sidebarOpen ? 286 : 0,
+        }}
+        transition={{ type: "spring", stiffness: 260, damping: 28 }}
+        className="relative z-20 flex h-full flex-col overflow-hidden bg-background"
+      >
+        {sidebarOpen && (
+          <button
+            type="button"
+            aria-label="Tutup sidebar"
+            className="absolute inset-0 z-30 bg-black/12"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
-        <div className="flex items-center gap-1.5">
-          <span className="font-bold text-sm text-gray-900">Mufassir</span>
-          <span className="text-[10px] font-semibold text-white bg-black rounded-full px-1.5 py-0.5 leading-tight">
-            AI
-          </span>
+        {/* ── Header ──────────────────────────────────────────────────────── */}
+        <header className="flex items-center justify-between px-4 pt-4 pb-3 bg-background z-10">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
+          >
+            <Menu className="w-5 h-5 text-gray-700" />
+          </button>
+
+          <div className="flex items-center gap-1.5">
+            <span className="font-bold text-sm text-gray-900">Mufassir</span>
+            <span className="text-[10px] font-semibold text-white bg-black rounded-full px-1.5 py-0.5 leading-tight">
+              AI
+            </span>
+          </div>
+
+          <Link
+            href="/"
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-700" />
+          </Link>
+        </header>
+
+        {/* ── Chat area ───────────────────────────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar overscroll-y-contain px-4 pt-2 flex flex-col">
+          <AnimatePresence mode="wait">
+            {messages.length === 0 && !isTyping ? (
+              <EmptyState key="empty" onSuggestion={handleSuggestion} />
+            ) : (
+              <motion.div
+                key="messages"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col pt-2 pb-2"
+              >
+                {messages.map((msg) => (
+                  <MessageBubble
+                    key={msg.id}
+                    message={msg}
+                    isStreaming={msg.id === streamingMessageId}
+                  />
+                ))}
+                <TypingIndicator visible={isTyping} />
+                <div ref={messagesEndRef} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        <Link
-          href="/"
-          className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-700" />
-        </Link>
-      </header>
-
-      {/* ── Chat area ───────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar overscroll-y-contain px-4 pt-2 flex flex-col">
-        <AnimatePresence mode="wait">
-          {messages.length === 0 && !isTyping ? (
-            <EmptyState key="empty" onSuggestion={handleSuggestion} />
-          ) : (
-            <motion.div
-              key="messages"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col pt-2 pb-2"
-            >
-              {messages.map((msg) => (
-                <MessageBubble
-                  key={msg.id}
-                  message={msg}
-                  isStreaming={msg.id === streamingMessageId}
-                />
-              ))}
-              <TypingIndicator visible={isTyping} />
-              <div ref={messagesEndRef} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* ── Input bar ───────────────────────────────────────────────────── */}
-      <InputBar
-        value={input}
-        isLoading={isTyping || streamingMessageId !== null}
-        onChange={setInput}
-        onSubmit={handleSubmit}
-      />
+        {/* ── Input bar ───────────────────────────────────────────────────── */}
+        <InputBar
+          value={input}
+          isLoading={isTyping || streamingMessageId !== null}
+          onChange={setInput}
+          onSubmit={handleSubmit}
+        />
+      </motion.div>
     </div>
   );
 }
