@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Bookmark, Check, CheckCircle2 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
-import BottomNav from "@/components/BottomNav";
 import { createClient } from "@/lib/supabase/client";
 import { getQuranData } from "@/lib/quran";
 import { markSurahAsRead, markSurahAsUnread } from "@/lib/supabase/reading";
@@ -261,7 +260,6 @@ export default function SurahReaderPage() {
         )}
       </AnimatePresence>
 
-      <BottomNav />
     </motion.div>
   );
 }

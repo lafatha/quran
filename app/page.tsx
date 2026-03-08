@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { BookOpen, Flame } from "lucide-react";
-import BottomNav from "@/components/BottomNav";
 import WeeklyCalendarStrip from "@/components/WeeklyCalendarStrip";
 import CircularProgress from "@/components/CircularProgress";
 import MacroCard from "@/components/MacroCard";
@@ -236,7 +235,6 @@ export default function HomePage() {
         )}
       </motion.div>
 
-      <BottomNav />
     </div>
   );
 }

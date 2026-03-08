@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Search, BookOpen, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import BottomNav from "@/components/BottomNav";
 import { createClient } from "@/lib/supabase/client";
 import { getQuranData } from "@/lib/quran";
 import type { Surah } from "@/lib/types";
@@ -153,7 +152,6 @@ export default function QuranPage() {
         )}
       </div>
 
-      <BottomNav />
     </motion.div>
   );
 }

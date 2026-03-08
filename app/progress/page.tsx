@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Flame, Flag, ArrowRight } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import BottomNav from "@/components/BottomNav";
 import { createClient } from "@/lib/supabase/client";
 
 interface ChartPoint {
@@ -203,7 +202,6 @@ export default function ProgressPage() {
         </div>
       </motion.div>
 
-      <BottomNav />
     </div>
   );
 }

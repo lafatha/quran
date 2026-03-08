@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronRight, Moon, Bell, Globe, BookOpen, Shield, FileText, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
-import BottomNav from "@/components/BottomNav";
 import { createClient } from "@/lib/supabase/client";
 
 interface SettingsData {
@@ -241,7 +240,6 @@ export default function SettingsPage() {
         </button>
       </motion.div>
 
-      <BottomNav />
     </div>
   );
 }
