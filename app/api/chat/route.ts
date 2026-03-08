@@ -6,7 +6,7 @@ import type { VectorResponse, ChatApiRequest } from "@/lib/chat";
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const CEREBRAS_API_URL = "https://api.cerebras.ai/v1/chat/completions";
-const CEREBRAS_MODEL = "llama-4-scout-17b-16e-instruct";
+const CEREBRAS_MODEL = "gpt-oss-120b";
 const EQURAN_VECTOR_URL = "https://equran.id/api/vector";
 
 // Max previous messages to include for context memory (keeps token cost low)
