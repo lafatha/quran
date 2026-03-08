@@ -2,15 +2,14 @@ import { Flame } from "lucide-react";
 import Link from "next/link";
 
 interface RecentCardProps {
+  id: number;
   name: string;
   ayatCount: number;
-  calories: number;
+  lastAyatRead: number;
   time: string;
-  image: string;
-  id: number;
 }
 
-export default function RecentCard({ name, ayatCount, calories, time, id }: RecentCardProps) {
+export default function RecentCard({ id, name, ayatCount, lastAyatRead, time }: RecentCardProps) {
   return (
     <Link href={`/surah/${id}`}>
       <div className="flex gap-3 bg-white rounded-2xl shadow-sm p-3 mb-3">
@@ -26,7 +25,7 @@ export default function RecentCard({ name, ayatCount, calories, time, id }: Rece
           </div>
           <div className="flex items-center gap-1 mt-1">
             <Flame className="w-3.5 h-3.5 text-flame-orange" />
-            <span className="font-bold text-sm">{calories} Ayat</span>
+            <span className="font-bold text-sm">Ayat {lastAyatRead}/{ayatCount}</span>
           </div>
           <div className="flex gap-2 mt-1 text-xs text-text-secondary">
             <span>🥩 {ayatCount > 200 ? "35g" : "25g"}</span>

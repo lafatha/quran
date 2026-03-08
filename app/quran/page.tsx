@@ -1,39 +1,62 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Search, BookOpen, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
+import { createClient } from "@/lib/supabase/client";
+import { getQuranData } from "@/lib/quran";
+import type { Surah } from "@/lib/types";
 
-interface Surah {
-  id: number;
-  name: string;
-  transliteration: string;
-  translation: string;
-  type: string;
-  total_verses: number;
+interface LastRead {
+  surahName: string;
+  ayatNumber: number;
 }
 
 export default function QuranPage() {
   const [surahs, setSurahs] = useState<Surah[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [lastRead, setLastRead] = useState<LastRead | null>(null);
 
   useEffect(() => {
-    fetch("/quran_id.json")
-      .then((res) => res.json())
-      .then((data: Surah[]) => {
-        setSurahs(data);
-        setLoading(false);
-      });
+    const supabase = createClient();
+
+    Promise.all([
+      getQuranData(),
+      supabase.auth.getUser(),
+    ]).then(async ([quran, userResult]) => {
+      setSurahs(quran);
+
+      const user = userResult.data.user;
+      if (user) {
+        const { data } = await supabase
+          .from("reading_progress")
+          .select("surah_id, last_ayat_read")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (data) {
+          const target = quran.find((item) => item.id === data.surah_id);
+          setLastRead({
+            surahName: target?.transliteration ?? `Surah ${data.surah_id}`,
+            ayatNumber: data.last_ayat_read ?? 1,
+          });
+        }
+      }
+
+      setLoading(false);
+    });
   }, []);
 
   const filtered = surahs.filter(
-    (s) =>
-      s.transliteration.toLowerCase().includes(search.toLowerCase()) ||
-      s.translation.toLowerCase().includes(search.toLowerCase()) ||
-      s.id.toString() === search
+    (surah) =>
+      surah.transliteration.toLowerCase().includes(search.toLowerCase()) ||
+      surah.translation.toLowerCase().includes(search.toLowerCase()) ||
+      surah.id.toString() === search,
   );
 
   return (
@@ -43,13 +66,11 @@ export default function QuranPage() {
       transition={{ duration: 0.4, ease: "easeOut" as const }}
       className="pb-24 min-h-screen bg-background"
     >
-      {/* Header */}
       <div className="px-5 pt-14 pb-4">
         <h1 className="text-2xl font-bold">Al-Quran</h1>
         <p className="text-sm text-gray-500 mt-1">Baca & pelajari ayat suci</p>
       </div>
 
-      {/* Search */}
       <div className="px-5 mb-5">
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
@@ -57,48 +78,36 @@ export default function QuranPage() {
             type="text"
             placeholder="Cari surah..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             className="w-full bg-white rounded-xl pl-10 pr-4 py-3.5 text-sm border border-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent shadow-sm shadow-emerald-500/5 transition-all"
           />
         </div>
       </div>
 
-      {/* Last Read Banner */}
       <div className="px-5 mb-7">
-        <div className="bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 rounded-2xl p-5 text-white shadow-xl shadow-teal-500/20 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-transform">
-          {/* Decorative glowing overlay effect */}
-          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-
-          {/* Subtle top glare effect */}
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <BookOpen className="w-24 h-24 -mt-4 -mr-4" />
+        <div className="rounded-2xl p-5 text-white shadow-sm relative overflow-hidden bg-emerald-600">
+          <div className="absolute top-0 right-0 p-4 opacity-15">
+            <BookOpen className="w-16 h-16 -mt-2 -mr-2" />
           </div>
           <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-emerald-50 font-bold mb-1 border-b border-white/20 inline-block pb-0.5">Terakhir Dibaca</p>
-              <p className="text-xl font-bold tracking-tight mt-1 drop-shadow-sm">Al-Baqarah</p>
-              <p className="text-sm text-emerald-50 mt-1">Ayat 142 <span className="mx-1.5 opacity-50">•</span> Juz 2</p>
+              <p className="text-[10px] uppercase tracking-wider text-emerald-50 font-bold mb-1">Terakhir Dibaca</p>
+              <p className="text-xl font-bold tracking-tight mt-1">{lastRead?.surahName ?? "Belum ada"}</p>
+              <p className="text-sm text-emerald-50 mt-1">
+                {lastRead ? `Ayat ${lastRead.ayatNumber}` : "Mulai bacaan pertamamu"}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Surah List */}
       <div className="px-5">
-        <h2 className="text-sm font-semibold text-gray-500 mb-3">
-          Daftar Surah ({filtered.length})
-        </h2>
+        <h2 className="text-sm font-semibold text-gray-500 mb-3">Daftar Surah ({filtered.length})</h2>
 
         {loading ? (
           <div className="space-y-3">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-xl p-4 animate-pulse flex items-center gap-3"
-              >
+            {Array.from({ length: 10 }).map((_, index) => (
+              <div key={index} className="bg-white rounded-xl p-4 animate-pulse flex items-center gap-3">
                 <div className="w-10 h-10 bg-gray-200 rounded-lg" />
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-200 rounded w-2/3" />
@@ -112,19 +121,18 @@ export default function QuranPage() {
             {filtered.map((surah) => (
               <Link key={surah.id} href={`/quran/${surah.id}`}>
                 <div className="bg-white rounded-xl p-4 flex items-center gap-4 hover:bg-emerald-50/50 active:scale-[0.98] transition-all border border-emerald-50 hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-500/5 group">
-                  {/* Number Badge */}
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm text-emerald-600 bg-emerald-50 border border-emerald-100/50 relative overflow-hidden group-hover:bg-emerald-500 group-hover:text-white transition-colors">
                     <span className="relative z-10">{surah.id}</span>
                   </div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <p className="font-semibold text-[15px] tracking-tight truncate text-gray-900 group-hover:text-emerald-700 transition-colors">
                         {surah.transliteration}
                       </p>
-                      <span className={`text-[9px] px-2 py-0.5 font-bold rounded-full uppercase tracking-widest shrink-0 ${surah.type === "meccan" ? "bg-cyan-50 text-cyan-600" : "bg-teal-50 text-teal-600"
-                        }`}>
+                      <span
+                        className={`text-[9px] px-2 py-0.5 font-bold rounded-full uppercase tracking-widest shrink-0 ${surah.type === "meccan" ? "bg-cyan-50 text-cyan-600" : "bg-teal-50 text-teal-600"}`}
+                      >
                         {surah.type === "meccan" ? "Makkiyah" : "Madaniyah"}
                       </span>
                     </div>
@@ -133,7 +141,6 @@ export default function QuranPage() {
                     </p>
                   </div>
 
-                  {/* Arabic Name */}
                   <p className="arabic-text text-xl text-emerald-900 shrink-0 font-normal opacity-90 group-hover:text-emerald-600 transition-colors">
                     {surah.name}
                   </p>

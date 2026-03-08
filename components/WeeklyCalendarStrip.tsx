@@ -1,11 +1,15 @@
 "use client";
 
-import { weekDays } from "@/lib/mock-data";
+import type { WeekDayItem } from "@/lib/types";
 
-export default function WeeklyCalendarStrip() {
+interface WeeklyCalendarStripProps {
+  days: WeekDayItem[];
+}
+
+export default function WeeklyCalendarStrip({ days }: WeeklyCalendarStripProps) {
   return (
     <div className="flex justify-between px-2 py-3">
-      {weekDays.map((d) => (
+      {days.map((d) => (
         <div key={d.day + d.date} className="flex flex-col items-center gap-1.5">
           <span className="text-xs text-text-secondary font-medium">{d.day}</span>
           <div

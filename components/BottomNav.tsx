@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, BarChart3, Settings, Star, Sparkles } from "lucide-react";
+import { Home, BookOpen, BarChart3, Settings, Sparkles } from "lucide-react";
 
 const tabs = [
   { href: "/", label: "Home", icon: Home },
