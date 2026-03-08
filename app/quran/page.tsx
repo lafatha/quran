@@ -50,29 +50,38 @@ export default function QuranPage() {
       </div>
 
       {/* Search */}
-      <div className="px-5 mb-4">
+      <div className="px-5 mb-5">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
           <input
             type="text"
             placeholder="Cari surah..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white rounded-xl pl-10 pr-4 py-3 text-sm border border-gray-100 focus:outline-none focus:ring-2 focus:ring-flame-orange/30"
+            className="w-full bg-white rounded-xl pl-10 pr-4 py-3.5 text-sm border border-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent shadow-sm shadow-emerald-500/5 transition-all"
           />
         </div>
       </div>
 
       {/* Last Read Banner */}
-      <div className="px-5 mb-5">
-        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-4 text-white">
-          <div className="flex items-center justify-between">
+      <div className="px-5 mb-7">
+        <div className="bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 rounded-2xl p-5 text-white shadow-xl shadow-teal-500/20 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-transform">
+          {/* Decorative glowing overlay effect */}
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Subtle top glare effect */}
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <BookOpen className="w-24 h-24 -mt-4 -mr-4" />
+          </div>
+          <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p className="text-xs opacity-80">Terakhir Dibaca</p>
-              <p className="text-lg font-bold mt-1">Al-Baqarah</p>
-              <p className="text-xs opacity-80 mt-0.5">Ayat 142 • Juz 2</p>
+              <p className="text-[10px] uppercase tracking-wider text-emerald-50 font-bold mb-1 border-b border-white/20 inline-block pb-0.5">Terakhir Dibaca</p>
+              <p className="text-xl font-bold tracking-tight mt-1 drop-shadow-sm">Al-Baqarah</p>
+              <p className="text-sm text-emerald-50 mt-1">Ayat 142 <span className="mx-1.5 opacity-50">•</span> Juz 2</p>
             </div>
-            <BookOpen className="w-10 h-10 opacity-40" />
           </div>
         </div>
       </div>
@@ -102,33 +111,34 @@ export default function QuranPage() {
           <div className="space-y-2">
             {filtered.map((surah) => (
               <Link key={surah.id} href={`/quran/${surah.id}`}>
-                <div className="bg-white rounded-xl p-4 flex items-center gap-3 active:scale-[0.98] transition-transform">
+                <div className="bg-white rounded-xl p-4 flex items-center gap-4 hover:bg-emerald-50/50 active:scale-[0.98] transition-all border border-emerald-50 hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-500/5 group">
                   {/* Number Badge */}
-                  <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center font-bold text-sm text-gray-600">
-                    {surah.id}
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm text-emerald-600 bg-emerald-50 border border-emerald-100/50 relative overflow-hidden group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                    <span className="relative z-10">{surah.id}</span>
                   </div>
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm truncate">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="font-semibold text-[15px] tracking-tight truncate text-gray-900 group-hover:text-emerald-700 transition-colors">
                         {surah.transliteration}
                       </p>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 capitalize shrink-0">
+                      <span className={`text-[9px] px-2 py-0.5 font-bold rounded-full uppercase tracking-widest shrink-0 ${surah.type === "meccan" ? "bg-cyan-50 text-cyan-600" : "bg-teal-50 text-teal-600"
+                        }`}>
                         {surah.type === "meccan" ? "Makkiyah" : "Madaniyah"}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {surah.translation} • {surah.total_verses} ayat
+                    <p className="text-xs text-gray-500 group-hover:text-emerald-600/70 transition-colors">
+                      {surah.translation} <span className="mx-1 opacity-50">•</span> {surah.total_verses} ayat
                     </p>
                   </div>
 
                   {/* Arabic Name */}
-                  <p className="arabic-text text-lg text-gray-700 shrink-0">
+                  <p className="arabic-text text-xl text-emerald-900 shrink-0 font-normal opacity-90 group-hover:text-emerald-600 transition-colors">
                     {surah.name}
                   </p>
 
-                  <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                  <ChevronRight className="w-4 h-4 text-emerald-200 shrink-0 group-hover:text-emerald-500 transition-colors group-hover:translate-x-0.5" />
                 </div>
               </Link>
             ))}

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, BookOpen, Share2, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Bookmark, Share2, Check, CheckCircle2 } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 
@@ -31,6 +31,25 @@ export default function SurahReaderPage() {
   const [allSurahs, setAllSurahs] = useState<Surah[]>([]);
   const [loading, setLoading] = useState(true);
   const [marked, setMarked] = useState(false);
+  const [bookmarkedVerse, setBookmarkedVerse] = useState<number | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const toggleBookmark = (verseId: number) => {
+    if (bookmarkedVerse === verseId) {
+      setBookmarkedVerse(null);
+      showToast("Bookmark dihapus.");
+    } else {
+      setBookmarkedVerse(verseId);
+      showToast(`Bookmark dipindah ke Ayat ${verseId}`);
+    }
+  };
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 2500);
+  };
 
   useEffect(() => {
     fetch("/quran_id.json")
@@ -84,11 +103,18 @@ export default function SurahReaderPage() {
           <div className="flex-1">
             <p className="text-sm font-bold">{surah.transliteration}</p>
           </div>
-          <Share2 className="w-5 h-5 text-gray-400" />
+          <button
+            onClick={() => setMarked(!marked)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${marked ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>{marked ? "Selesai" : "Tandai"}</span>
+          </button>
         </div>
 
         {/* Adjacent Surah Pills */}
-        <div className="flex gap-2 px-4 pb-3 overflow-x-auto hide-scrollbar">
+        <div className="flex justify-center gap-2 px-4 pb-3 overflow-x-auto hide-scrollbar">
           {prevSurah && (
             <button
               onClick={() => router.push(`/quran/${prevSurah.id}`)}
@@ -112,24 +138,46 @@ export default function SurahReaderPage() {
       </div>
 
       {/* Surah Header Card */}
-      <div className="px-5 mt-4 mb-5">
-        <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white text-center">
-          <p className="arabic-text text-3xl mb-2">{surah.name}</p>
-          <p className="text-lg font-bold">{surah.transliteration}</p>
-          <p className="text-sm opacity-80 mt-1">{surah.translation}</p>
-          <div className="flex items-center justify-center gap-2 mt-3 text-xs opacity-70">
-            <span className="capitalize">
+      <div className="px-5 mt-2 mb-6">
+        <div className="bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 rounded-2xl p-6 text-white text-center relative shadow-xl shadow-teal-500/20 overflow-hidden flex flex-col items-center">
+          {/* Decorative glowing overlay effect */}
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+
+          {/* Subtle top glare effect */}
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+          <div className="w-full flex justify-center mb-3">
+            <p
+              className="arabic-text text-5xl font-normal opacity-95 leading-relaxed drop-shadow-sm text-center"
+              dir="ltr"
+            >
+              {surah.name}
+            </p>
+          </div>
+          <p className="text-2xl font-bold tracking-tight drop-shadow-sm">{surah.transliteration}</p>
+          <p className="text-sm text-emerald-50 border-b border-white/20 inline-block pb-1.5 mt-1.5 px-3">{surah.translation}</p>
+
+          <div className="flex items-center justify-center gap-3 mt-5 text-xs font-semibold text-white">
+            <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full uppercase tracking-wider">
               {surah.type === "meccan" ? "Makkiyah" : "Madaniyah"}
             </span>
-            <span>•</span>
-            <span>{surah.total_verses} Ayat</span>
+            <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full uppercase tracking-wider">
+              {surah.total_verses} Ayat
+            </span>
           </div>
 
           {/* Bismillah */}
           {surah.id !== 1 && surah.id !== 9 && (
-            <p className="arabic-text text-xl mt-4 opacity-90">
-              بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-            </p>
+            <div className="flex flex-col items-center w-full">
+              <div className="w-16 h-px bg-white/30 mx-auto mt-6 mb-5" />
+              <p
+                className="arabic-text text-3xl opacity-95 leading-relaxed drop-shadow-sm"
+                style={{ textAlign: "center" }}
+              >
+                بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+              </p>
+            </div>
           )}
         </div>
       </div>
@@ -142,14 +190,26 @@ export default function SurahReaderPage() {
             className="bg-white rounded-xl p-4 border border-gray-50"
           >
             {/* Ayat Header */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-8 h-8 bg-emerald-50 rounded-full flex items-center justify-center">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-8 h-8 bg-emerald-50 rounded-full flex items-center justify-center border border-emerald-100/50">
                 <span className="text-xs font-bold text-emerald-600">
                   {verse.id}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-gray-300" />
+              <div className="flex items-center gap-2 relative">
+                <button
+                  onClick={() => toggleBookmark(verse.id)}
+                  className={`p-2 rounded-full transition-all ${bookmarkedVerse === verse.id
+                    ? "bg-flame-orange/10 text-flame-orange"
+                    : "bg-gray-50 text-gray-400 hover:bg-gray-100"
+                    }`}
+                  aria-label="Bookmark verse"
+                >
+                  <Bookmark
+                    className="w-4 h-4"
+                    fill={bookmarkedVerse === verse.id ? "currentColor" : "none"}
+                  />
+                </button>
               </div>
             </div>
 
@@ -166,22 +226,45 @@ export default function SurahReaderPage() {
         ))}
       </div>
 
-      {/* Mark as Read FAB */}
-      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40">
+      {/* Mark as Read Button (Inline flow to prevent overlap UX issues) */}
+      <div className="pt-6 pb-8 px-5 flex justify-center mt-4">
         <button
           onClick={() => setMarked(!marked)}
-          className={`flex items-center gap-2 px-5 py-3 rounded-full shadow-lg transition-all ${
-            marked
-              ? "bg-done-green text-white"
-              : "bg-black text-white"
-          }`}
+          className={`flex items-center gap-2 px-6 py-3.5 rounded-full font-medium transition-all active:scale-95 ${marked
+            ? "bg-white text-black border-2 border-black"
+            : "bg-black text-white shadow-lg shadow-black/10 hover:-translate-y-1"
+            }`}
         >
-          <Check className="w-4 h-4" />
-          <span className="text-sm font-semibold">
-            {marked ? "Sudah Dibaca ✓" : "Tandai Dibaca"}
+          <Check className={`w-5 h-5 ${marked ? "text-black" : "text-white"}`} />
+          <span className="text-sm">
+            {marked ? "Tandai Belum Dibaca" : "Selesai & Tandai Dibaca"}
           </span>
         </button>
       </div>
+
+      {/* Minimalism Toast Popup */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 30, scale: 0.95 }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 30,
+            }}
+            className="fixed bottom-24 left-0 right-0 z-50 flex justify-center pointer-events-none px-4 mx-auto max-w-[390px]"
+          >
+            <div className="bg-[#1C1C1E] backdrop-blur-xl px-5 py-3.5 rounded-2xl shadow-2xl flex items-center justify-center gap-3 w-auto border border-white/5">
+              <Bookmark className="w-4 h-4 text-flame-orange shrink-0" fill="currentColor" />
+              <p className="text-white text-[13px] font-semibold tracking-wide">
+                {toastMessage}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <BottomNav />
     </motion.div>
