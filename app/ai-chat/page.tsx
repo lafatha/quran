@@ -24,6 +24,10 @@ import type { Database } from "@/lib/supabase/database";
 type ConversationRow = Database["public"]["Tables"]["chat_conversations"]["Row"];
 type MessageRow = Database["public"]["Tables"]["chat_messages"]["Row"];
 
+function isTemporaryMessage(message: ChatMessage) {
+  return message.id.startsWith("tmp-");
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SUGGESTION_PROMPTS = [
@@ -404,7 +408,7 @@ function Sidebar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/40 z-40"
+            className="fixed inset-0 bg-black/40 z-40"
             onClick={onClose}
           />
 
@@ -415,71 +419,73 @@ function Sidebar({
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", stiffness: 340, damping: 32 }}
-            className="absolute top-0 left-0 h-full w-[78%] max-w-[300px] bg-white z-50 flex flex-col shadow-2xl"
+            className="fixed top-0 left-1/2 -translate-x-1/2 h-full w-full max-w-[390px] z-50 pointer-events-none"
           >
-            {/* Drawer header */}
-            <div className="flex items-center justify-between px-4 pt-5 pb-4 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center">
-                  <Sparkles className="w-3.5 h-3.5 text-white" />
+            <div className="h-full w-[78%] max-w-[300px] bg-white flex flex-col shadow-2xl pointer-events-auto">
+              {/* Drawer header */}
+              <div className="flex items-center justify-between px-4 pt-5 pb-4 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center">
+                    <Sparkles className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <span className="font-bold text-sm text-gray-900">Mufassir</span>
                 </div>
-                <span className="font-bold text-sm text-gray-900">Mufassir</span>
+                <button
+                  onClick={onClose}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
               </div>
-              <button
-                onClick={onClose}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-              >
-                <X className="w-4 h-4 text-gray-500" />
-              </button>
-            </div>
 
-            {/* New Chat button */}
-            <div className="px-3 pt-3 pb-2">
-              <button
-                onClick={onNewChat}
-                className="flex items-center gap-2 w-full bg-black text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-gray-900 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Chat Baru</span>
-              </button>
-            </div>
+              {/* New Chat button */}
+              <div className="px-3 pt-3 pb-2">
+                <button
+                  onClick={onNewChat}
+                  className="flex items-center gap-2 w-full bg-black text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-gray-900 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Chat Baru</span>
+                </button>
+              </div>
 
-            {/* History */}
-            <div className="flex-1 overflow-y-auto px-3 pb-6">
-              {conversations.length === 0 ? (
-                <p className="text-xs text-text-secondary text-center mt-8">
-                  Belum ada riwayat percakapan
-                </p>
-              ) : (
-                groupOrder.map((label) => {
-                  const items = grouped[label];
-                  if (!items || items.length === 0) return null;
-                  return (
-                    <div key={label} className="mt-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary px-1 mb-1">
-                        {label}
-                      </p>
-                      {items.map((conv) => (
-                        <button
-                          key={conv.id}
-                          onClick={() => {
-                            onSelectConversation(conv.id);
-                            onClose();
-                          }}
-                          className={`flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors mb-0.5 ${
-                            conv.id === activeConversationId
-                              ? "bg-gray-100 font-semibold text-gray-900"
-                              : "text-gray-700 hover:bg-gray-50"
-                          }`}
-                        >
-                          <MessageSquare className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                          <span className="truncate">{conv.title}</span>
-                        </button>
-                      ))}
-                    </div>
-                  );
-                })
-              )}
+              {/* History */}
+              <div className="flex-1 overflow-y-auto px-3 pb-6">
+                {conversations.length === 0 ? (
+                  <p className="text-xs text-text-secondary text-center mt-8">
+                    Belum ada riwayat percakapan
+                  </p>
+                ) : (
+                  groupOrder.map((label) => {
+                    const items = grouped[label];
+                    if (!items || items.length === 0) return null;
+                    return (
+                      <div key={label} className="mt-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary px-1 mb-1">
+                          {label}
+                        </p>
+                        {items.map((conv) => (
+                          <button
+                            key={conv.id}
+                            onClick={() => {
+                              onSelectConversation(conv.id);
+                              onClose();
+                            }}
+                            className={`flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors mb-0.5 ${
+                              conv.id === activeConversationId
+                                ? "bg-gray-100 font-semibold text-gray-900"
+                                : "text-gray-700 hover:bg-gray-50"
+                            }`}
+                          >
+                            <MessageSquare className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                            <span className="truncate">{conv.title}</span>
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
           </motion.aside>
         </>
@@ -572,6 +578,16 @@ export default function AIChatPage() {
   const [isTyping, setIsTyping] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollFrameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   // ── Auth ───────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -598,9 +614,29 @@ export default function AIChatPage() {
   }, [fetchConversations]);
 
   // ── Auto-scroll ────────────────────────────────────────────────────────────
+  const scrollToBottom = useCallback((behavior: ScrollBehavior) => {
+    messagesEndRef.current?.scrollIntoView({ behavior, block: "end" });
+  }, []);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+    const behavior: ScrollBehavior = streamingMessageId ? "auto" : "smooth";
+
+    if (scrollFrameRef.current !== null) {
+      cancelAnimationFrame(scrollFrameRef.current);
+    }
+
+    scrollFrameRef.current = requestAnimationFrame(() => {
+      scrollToBottom(behavior);
+      scrollFrameRef.current = null;
+    });
+
+    return () => {
+      if (scrollFrameRef.current !== null) {
+        cancelAnimationFrame(scrollFrameRef.current);
+        scrollFrameRef.current = null;
+      }
+    };
+  }, [messages.length, isTyping, streamingMessageId, scrollToBottom]);
 
   // ── Load messages for a conversation ──────────────────────────────────────
   const loadConversation = useCallback(
@@ -611,7 +647,21 @@ export default function AIChatPage() {
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true })
         .then(({ data }) => {
-          if (data) setMessages(data as ChatMessage[]);
+          if (!data) return;
+
+          const fetchedMessages = data as ChatMessage[];
+          setMessages((prev) => {
+            const optimisticMessages = prev.filter(isTemporaryMessage);
+
+            if (optimisticMessages.length === 0) {
+              return fetchedMessages;
+            }
+
+            return [...fetchedMessages, ...optimisticMessages].sort(
+              (a, b) =>
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+            );
+          });
         });
     },
     [supabase],
@@ -745,18 +795,33 @@ export default function AIChatPage() {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let fullContent = "";
+        let pendingContent = "";
+        let lastFlushAt = 0;
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          fullContent += chunk;
+        const flushBufferedContent = (force = false) => {
+          const now = Date.now();
+          if (!force && now - lastFlushAt < 40) {
+            return;
+          }
+
+          fullContent = pendingContent;
           setMessages((prev) =>
             prev.map((m) =>
               m.id === tempAiMsgId ? { ...m, content: fullContent } : m,
             ),
           );
+          lastFlushAt = now;
+        };
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          pendingContent += chunk;
+          flushBufferedContent();
         }
+
+        flushBufferedContent(true);
 
         setStreamingMessageId(null);
 
@@ -827,7 +892,7 @@ export default function AIChatPage() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
+    <div className="h-[100dvh] max-h-[100dvh] bg-background flex flex-col relative overflow-hidden">
       {/* ── Sidebar ─────────────────────────────────────────────────────── */}
       <Sidebar
         isOpen={sidebarOpen}
@@ -866,7 +931,7 @@ export default function AIChatPage() {
       </header>
 
       {/* ── Chat area ───────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-4 pt-2 flex flex-col">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar overscroll-y-contain px-4 pt-2 flex flex-col">
         <AnimatePresence mode="wait">
           {messages.length === 0 && !isTyping ? (
             <EmptyState key="empty" onSuggestion={handleSuggestion} />

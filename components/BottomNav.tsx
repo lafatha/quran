@@ -26,6 +26,7 @@ export default function BottomNav() {
       <Link
         key={tab.href}
         href={tab.href}
+        prefetch
         className="group flex flex-col items-center gap-1 py-2 px-2 flex-1"
       >
         <div className={`relative flex items-center justify-center w-auto h-auto transition-transform ${isActive ? "scale-110" : "group-hover:scale-110"}`}>

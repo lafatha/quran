@@ -14,15 +14,6 @@ interface SettingsData {
   dailyTargetPages: number;
 }
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.08, duration: 0.4, ease: "easeOut" as const },
-  }),
-};
-
 interface ToggleProps {
   on: boolean;
   onChange: (value: boolean) => void;
@@ -125,12 +116,17 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <motion.h1 initial="hidden" animate="visible" custom={0} variants={fadeUp} className="text-2xl font-bold px-5 pt-6 pb-4">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: "easeOut" as const }}
+      className="min-h-screen bg-background pb-24"
+    >
+      <h1 className="text-2xl font-bold px-5 pt-6 pb-4">
         Settings
-      </motion.h1>
+      </h1>
 
-      <motion.div initial="hidden" animate="visible" custom={1} variants={fadeUp} className="px-4">
+      <div className="px-4">
         <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-3">
           <div className="w-14 h-14 bg-black rounded-full flex items-center justify-center">
             <span className="text-white font-bold text-lg">{initials}</span>
@@ -141,9 +137,9 @@ export default function SettingsPage() {
           </div>
           <ChevronRight className="w-5 h-5 text-text-secondary" />
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div initial="hidden" animate="visible" custom={2} variants={fadeUp} className="px-4 mt-4">
+      <div className="px-4 mt-4">
         <h3 className="text-xs text-text-secondary font-semibold uppercase tracking-wider mb-2 px-1">Target & Pengingat</h3>
         <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100">
           <div className="flex items-center justify-between p-4">
@@ -177,9 +173,9 @@ export default function SettingsPage() {
             <Toggle on={settings.readingNotification} onChange={(value) => updateSetting({ readingNotification: value })} />
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div initial="hidden" animate="visible" custom={3} variants={fadeUp} className="px-4 mt-4">
+      <div className="px-4 mt-4">
         <h3 className="text-xs text-text-secondary font-semibold uppercase tracking-wider mb-2 px-1">Tampilan</h3>
         <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100">
           <div className="flex items-center justify-between p-4">
@@ -205,9 +201,9 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div initial="hidden" animate="visible" custom={4} variants={fadeUp} className="px-4 mt-4">
+      <div className="px-4 mt-4">
         <h3 className="text-xs text-text-secondary font-semibold uppercase tracking-wider mb-2 px-1">Tentang</h3>
         <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100">
           <div className="flex items-center justify-between p-4">
@@ -229,17 +225,17 @@ export default function SettingsPage() {
             <ChevronRight className="w-4 h-4 text-text-secondary" />
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div initial="hidden" animate="visible" custom={5} variants={fadeUp} className="px-4 mt-4">
+      <div className="px-4 mt-4">
         <button
           onClick={signOut}
           className="w-full bg-white rounded-2xl shadow-sm py-3.5 text-sm font-semibold flex items-center justify-center gap-2 border border-gray-100"
         >
           <LogOut className="w-4 h-4" /> Keluar
         </button>
-      </motion.div>
+      </div>
 
-    </div>
+    </motion.div>
   );
 }

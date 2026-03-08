@@ -18,15 +18,6 @@ interface DailyLog {
   minutes_read: number;
 }
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.08, duration: 0.4, ease: "easeOut" as const },
-  }),
-};
-
 const filters = ["90D", "6M", "1Y", "ALL"];
 
 function getRangeDays(filter: string) {
@@ -54,11 +45,16 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 }
 
 export default function ProgressPage() {
+  const [isMounted, setIsMounted] = useState(false);
   const [activeFilter, setActiveFilter] = useState("6M");
   const [targetJuz, setTargetJuz] = useState(30);
   const [completedCount, setCompletedCount] = useState(0);
   const [streak, setStreak] = useState(0);
   const [logs, setLogs] = useState<DailyLog[]>([]);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -127,12 +123,17 @@ export default function ProgressPage() {
   const progressPercentage = Math.min(100, Math.round((currentJuz / targetJuz) * 100));
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <motion.h1 initial="hidden" animate="visible" custom={0} variants={fadeUp} className="text-2xl font-bold px-5 pt-6 pb-4">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: "easeOut" as const }}
+      className="min-h-screen bg-background pb-24"
+    >
+      <h1 className="text-2xl font-bold px-5 pt-6 pb-4">
         Progress
-      </motion.h1>
+      </h1>
 
-      <motion.div initial="hidden" animate="visible" custom={1} variants={fadeUp} className="px-4 flex gap-3">
+      <div className="px-4 flex gap-3">
         <div className="flex-1 bg-white rounded-2xl shadow-sm p-4">
           <p className="text-xs text-text-secondary">Posisi Kamu</p>
           <p className="text-2xl font-bold mt-1">Juz {currentJuz}</p>
@@ -153,9 +154,9 @@ export default function ProgressPage() {
           <p className="text-2xl font-bold text-flame-orange mt-1">{streak}</p>
           <p className="text-xs text-flame-orange font-semibold">Day Streak</p>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div initial="hidden" animate="visible" custom={2} variants={fadeUp} className="px-4 mt-4">
+      <div className="px-4 mt-4">
         <div className="bg-white rounded-2xl shadow-sm p-4">
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-bold text-sm">Progres Bacaan</h3>
@@ -164,17 +165,21 @@ export default function ProgressPage() {
             </span>
           </div>
 
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} domain={[0, targetJuz]} />
-                <Tooltip content={<CustomTooltip />} />
-                <Line type="monotone" dataKey="actual" stroke="#22C55E" strokeWidth={2} dot={false} activeDot={{ r: 5, fill: "#22C55E", stroke: "#fff", strokeWidth: 2 }} />
-                <Line type="monotone" dataKey="goal" stroke="#000" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="h-48 min-w-0">
+            {isMounted ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#9CA3AF" }} domain={[0, targetJuz]} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line type="monotone" dataKey="actual" stroke="#22C55E" strokeWidth={2} dot={false} activeDot={{ r: 5, fill: "#22C55E", stroke: "#fff", strokeWidth: 2 }} />
+                  <Line type="monotone" dataKey="goal" stroke="#000" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full rounded-xl bg-gray-50" />
+            )}
           </div>
 
           <div className="flex justify-center gap-2 mt-3">
@@ -189,9 +194,9 @@ export default function ProgressPage() {
             ))}
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div initial="hidden" animate="visible" custom={3} variants={fadeUp} className="px-4 mt-4">
+      <div className="px-4 mt-4">
         <div className="bg-white rounded-2xl shadow-sm p-4">
           <h3 className="font-bold text-sm">Rata-rata Harian</h3>
           <div className="flex items-baseline gap-2 mt-2">
@@ -200,8 +205,8 @@ export default function ProgressPage() {
             <span className="text-sm text-done-green font-semibold">stabil</span>
           </div>
         </div>
-      </motion.div>
+      </div>
 
-    </div>
+    </motion.div>
   );
 }

@@ -43,15 +43,6 @@ const fallbackProgress: DailyProgressState = {
   streak: 0,
 };
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.08, duration: 0.4, ease: "easeOut" as const },
-  }),
-};
-
 function formatTime(value: string) {
   const date = new Date(value);
   return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
@@ -172,14 +163,13 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        custom={0}
-        variants={fadeUp}
-        className="flex justify-between items-center px-5 pt-5 pb-2"
-      >
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: "easeOut" as const }}
+      className="min-h-screen bg-background pb-24"
+    >
+      <div className="flex justify-between items-center px-5 pt-5 pb-2">
         <div className="flex items-center gap-2">
           <BookOpen className="w-6 h-6" />
           <span className="text-lg font-bold">Quran AI</span>
@@ -188,13 +178,13 @@ export default function HomePage() {
           <Flame className="w-4 h-4 text-flame-orange" />
           <span className="font-bold text-sm">{progress.streak}</span>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div initial="hidden" animate="visible" custom={1} variants={fadeUp} className="px-3">
+      <div className="px-3">
         <WeeklyCalendarStrip days={weekDays} />
-      </motion.div>
+      </div>
 
-      <motion.div initial="hidden" animate="visible" custom={2} variants={fadeUp} className="px-4 mt-2">
+      <div className="px-4 mt-2">
         <div className="bg-white rounded-2xl shadow-sm p-5 flex items-center justify-between">
           <div>
             <div className="flex items-baseline gap-0.5">
@@ -207,17 +197,17 @@ export default function HomePage() {
             <Flame className="w-5 h-5 text-black" />
           </CircularProgress>
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div initial="hidden" animate="visible" custom={3} variants={fadeUp} className="mt-4 px-4">
+      <div className="mt-4 px-4">
         <div className="flex gap-3 overflow-x-auto hide-scrollbar snap-x pb-2">
           <MacroCard value={progress.surahRead} goal={progress.surahGoal} label="Surah" icon="📖" color="#EF4444" />
           <MacroCard value={progress.halamanRead} goal={progress.halamanGoal} label="Halaman" icon="📄" color="#F97316" />
           <MacroCard value={progress.menitRead} goal={progress.menitGoal} label="Menit" icon="⏱️" color="#3B82F6" />
         </div>
-      </motion.div>
+      </div>
 
-      <motion.div initial="hidden" animate="visible" custom={4} variants={fadeUp} className="px-4 mt-6">
+      <div className="px-4 mt-6">
         <h3 className="font-bold text-base mb-3">Terakhir Dibaca</h3>
         {recentlyRead.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm p-4 text-sm text-text-secondary">Belum ada bacaan. Mulai dari halaman Quran.</div>
@@ -233,8 +223,8 @@ export default function HomePage() {
             />
           ))
         )}
-      </motion.div>
+      </div>
 
-    </div>
+    </motion.div>
   );
 }

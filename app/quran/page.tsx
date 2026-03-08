@@ -60,9 +60,9 @@ export default function QuranPage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" as const }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: "easeOut" as const }}
       className="pb-24 min-h-screen bg-background"
     >
       <div className="px-5 pt-14 pb-4">
