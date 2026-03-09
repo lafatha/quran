@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { BookOpen, Flame } from "lucide-react";
 import WeeklyCalendarStrip from "@/components/WeeklyCalendarStrip";
 import CircularProgress from "@/components/CircularProgress";
@@ -163,12 +162,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, ease: "easeOut" as const }}
-      className="min-h-screen bg-background pb-24"
-    >
+    <div className="min-h-screen bg-white pb-24">
       <div className="flex justify-between items-center px-5 pt-5 pb-2">
         <div className="flex items-center gap-2">
           <BookOpen className="w-6 h-6" />
@@ -225,6 +219,6 @@ export default function HomePage() {
         )}
       </div>
 
-    </motion.div>
+    </div>
   );
 }
