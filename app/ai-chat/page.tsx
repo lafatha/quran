@@ -23,7 +23,8 @@ export const dynamic = "force-dynamic";
 
 // ─── Local DB row types ───────────────────────────────────────────────────────
 
-type ConversationRow = Database["public"]["Tables"]["chat_conversations"]["Row"];
+type ConversationRow =
+  Database["public"]["Tables"]["chat_conversations"]["Row"];
 type MessageRow = Database["public"]["Tables"]["chat_messages"]["Row"];
 
 function isTemporaryMessage(message: ChatMessage) {
@@ -47,16 +48,16 @@ interface TypingIndicatorProps {
 function TypingIndicator({ visible }: TypingIndicatorProps) {
   if (!visible) return null;
   return (
-    <div className="flex items-end gap-2 mb-4">
-      <div className="w-7 h-7 rounded-full bg-black flex items-center justify-center flex-shrink-0">
+    <div className="flex items-end gap-2.5 mb-4">
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-700 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-emerald-900/20">
         <Sparkles className="w-3.5 h-3.5 text-white" />
       </div>
-      <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm border border-gray-100">
-        <div className="flex gap-1 items-center h-4">
+      <div className="bg-white rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm border border-emerald-100">
+        <div className="flex gap-1.5 items-center h-4">
           {[0, 1, 2].map((i) => (
             <motion.span
               key={i}
-              className="w-1.5 h-1.5 rounded-full bg-gray-400 block"
+              className="w-1.5 h-1.5 rounded-full bg-emerald-400 block"
               animate={{ y: [0, -4, 0] }}
               transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
             />
@@ -82,23 +83,23 @@ function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
-      className={`flex items-end gap-2 mb-4 ${isUser ? "flex-row-reverse" : "flex-row"}`}
+      className={`flex items-end gap-2.5 mb-4 ${isUser ? "flex-row-reverse" : "flex-row"}`}
     >
       {!isUser && (
-        <div className="w-7 h-7 rounded-full bg-black flex items-center justify-center flex-shrink-0">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-700 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-emerald-900/20">
           <Sparkles className="w-3.5 h-3.5 text-white" />
         </div>
       )}
       <div
         className={`max-w-[78%] px-4 py-3 text-sm leading-relaxed ${
           isUser
-            ? "bg-black text-white rounded-2xl rounded-br-sm"
-            : "bg-white text-gray-900 rounded-2xl rounded-bl-sm shadow-sm border border-gray-100"
+            ? "bg-gradient-to-br from-emerald-700 to-teal-600 text-white rounded-2xl rounded-br-sm shadow-md shadow-emerald-900/20"
+            : "bg-white text-gray-900 rounded-2xl rounded-bl-sm shadow-sm border border-emerald-100"
         }`}
       >
         <FormattedMessage content={message.content} isUser={isUser} />
         {isStreaming && (
-          <span className="inline-block w-0.5 h-3.5 bg-gray-400 ml-0.5 align-middle animate-pulse" />
+          <span className="inline-block w-0.5 h-3.5 bg-emerald-300 ml-0.5 align-middle animate-pulse" />
         )}
       </div>
     </motion.div>
@@ -106,29 +107,33 @@ function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
 }
 
 // ─── FormattedMessage ─────────────────────────────────────────────────────────
-// Renders the AI plain-text response with proper formatting:
-// - Lines starting with "Arab  :" get an Arabic font class
-// - Lines starting with "[AYAT]", "[TAFSIR]" etc. (if leaked) are cleaned
-// - Bullet • lines get proper list rendering
-// - Everything else is plain <p>
 
 interface FormattedMessageProps {
   content: string;
   isUser: boolean;
 }
 
-function renderInlineFormatting(text: string, isUser: boolean): React.ReactNode[] {
+function renderInlineFormatting(
+  text: string,
+  isUser: boolean,
+): React.ReactNode[] {
   const segments = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
 
   return segments.map((segment, index) => {
     const isBold =
       segment.startsWith("**") && segment.endsWith("**") && segment.length > 4;
     const isItalic =
-      segment.startsWith("*") && segment.endsWith("*") && !isBold && segment.length > 2;
+      segment.startsWith("*") &&
+      segment.endsWith("*") &&
+      !isBold &&
+      segment.length > 2;
 
     if (isBold) {
       return (
-        <strong key={index} className={`font-semibold ${isUser ? "text-white" : "text-gray-900"}`}>
+        <strong
+          key={index}
+          className={`font-semibold ${isUser ? "text-white" : "text-gray-900"}`}
+        >
           {segment.slice(2, -2)}
         </strong>
       );
@@ -136,7 +141,10 @@ function renderInlineFormatting(text: string, isUser: boolean): React.ReactNode[
 
     if (isItalic) {
       return (
-        <em key={index} className={`italic ${isUser ? "text-white/90" : "text-gray-800"}`}>
+        <em
+          key={index}
+          className={`italic ${isUser ? "text-white/90" : "text-gray-800"}`}
+        >
           {segment.slice(1, -1)}
         </em>
       );
@@ -150,7 +158,6 @@ function FormattedMessage({ content, isUser }: FormattedMessageProps) {
   const normalizedContent = content.replace(/\r\n/g, "\n");
   const rawLines = normalizedContent.split("\n");
 
-  // ── Pre-process: group consecutive table rows into table blocks ──────────
   type LineSegment = { type: "line"; value: string; index: number };
   type TableSegment = { type: "table"; rows: string[]; index: number };
   type Segment = LineSegment | TableSegment;
@@ -162,7 +169,11 @@ function FormattedMessage({ content, isUser }: FormattedMessageProps) {
     if (t.startsWith("|") && t.endsWith("|")) {
       const tableRows: string[] = [];
       const startIdx = si;
-      while (si < rawLines.length && rawLines[si].trim().startsWith("|") && rawLines[si].trim().endsWith("|")) {
+      while (
+        si < rawLines.length &&
+        rawLines[si].trim().startsWith("|") &&
+        rawLines[si].trim().endsWith("|")
+      ) {
         tableRows.push(rawLines[si].trim());
         si++;
       }
@@ -181,21 +192,23 @@ function FormattedMessage({ content, isUser }: FormattedMessageProps) {
   }
 
   function renderTableSegment(rows: string[], key: number) {
-    // Drop separator rows like | --- | :-- | etc.
     const dataRows = rows.filter((row) => !/^\|[\s|:\-]+\|$/.test(row));
     if (dataRows.length === 0) return null;
     const [headerRow, ...bodyRows] = dataRows;
     const headers = parseTableRow(headerRow);
     const bodyData = bodyRows.map(parseTableRow);
     return (
-      <div key={key} className="overflow-x-auto w-full my-2 rounded-lg border border-gray-200">
+      <div
+        key={key}
+        className="overflow-x-auto w-full my-2 rounded-xl border border-emerald-100"
+      >
         <table className="text-xs border-collapse w-full">
           <thead>
-            <tr className="bg-gray-100">
+            <tr className="bg-emerald-50">
               {headers.map((cell, ci) => (
                 <th
                   key={ci}
-                  className="border-b border-gray-200 px-2 py-1.5 font-semibold text-gray-700 text-left whitespace-nowrap"
+                  className="border-b border-emerald-100 px-2 py-1.5 font-semibold text-emerald-800 text-left whitespace-nowrap"
                 >
                   {renderInlineFormatting(cell, false)}
                 </th>
@@ -204,9 +217,15 @@ function FormattedMessage({ content, isUser }: FormattedMessageProps) {
           </thead>
           <tbody>
             {bodyData.map((row, ri) => (
-              <tr key={ri} className={ri % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+              <tr
+                key={ri}
+                className={ri % 2 === 0 ? "bg-white" : "bg-emerald-50/40"}
+              >
                 {row.map((cell, ci) => (
-                  <td key={ci} className="border-b border-gray-100 px-2 py-1.5 text-gray-700 leading-snug">
+                  <td
+                    key={ci}
+                    className="border-b border-emerald-50 px-2 py-1.5 text-gray-700 leading-snug"
+                  >
                     {renderInlineFormatting(cell, false)}
                   </td>
                 ))}
@@ -233,7 +252,9 @@ function FormattedMessage({ content, isUser }: FormattedMessageProps) {
         }
 
         const arabicWithLabelMatch = trimmed.match(/^Arab\s*:?[\s]*(.+)$/i);
-        const arabicText = arabicWithLabelMatch ? arabicWithLabelMatch[1].trim() : trimmed;
+        const arabicText = arabicWithLabelMatch
+          ? arabicWithLabelMatch[1].trim()
+          : trimmed;
         const isArabicLine =
           /^[\u0600-\u06FF\u0750-\u077F]/.test(arabicText) ||
           /^[\u0600-\u06FF\u0750-\u077F]/.test(trimmed);
@@ -242,7 +263,7 @@ function FormattedMessage({ content, isUser }: FormattedMessageProps) {
           return (
             <p
               key={index}
-              className={`text-right leading-loose text-lg font-arabic ${isUser ? "text-white" : "text-gray-900"}`}
+              className={`text-right leading-loose text-lg font-arabic ${isUser ? "text-white" : "text-emerald-900"}`}
               dir="rtl"
             >
               {arabicText}
@@ -253,14 +274,22 @@ function FormattedMessage({ content, isUser }: FormattedMessageProps) {
         const headingMatch = trimmed.match(/^#{1,3}\s+(.+)$/);
         if (headingMatch) {
           return (
-            <p key={index} className={`font-semibold mt-2 ${isUser ? "text-white" : "text-gray-900"}`}>
+            <p
+              key={index}
+              className={`font-semibold mt-2 ${isUser ? "text-white" : "text-emerald-900"}`}
+            >
               {renderInlineFormatting(headingMatch[1], isUser)}
             </p>
           );
         }
 
         if (/^-{3,}$/.test(trimmed)) {
-          return <div key={index} className={`h-px my-2 ${isUser ? "bg-white/30" : "bg-gray-200"}`} />;
+          return (
+            <div
+              key={index}
+              className={`h-px my-2 ${isUser ? "bg-white/30" : "bg-emerald-100"}`}
+            />
+          );
         }
 
         const quoteMatch = trimmed.match(/^>\s*(.+)$/);
@@ -268,7 +297,11 @@ function FormattedMessage({ content, isUser }: FormattedMessageProps) {
           return (
             <div
               key={index}
-              className={`border-l-2 pl-3 ${isUser ? "border-white/40 text-white/90" : "border-gray-300 text-gray-700"}`}
+              className={`border-l-2 pl-3 rounded-r-lg py-0.5 ${
+                isUser
+                  ? "border-white/40 text-white/90"
+                  : "border-emerald-400 text-gray-700 bg-emerald-50/60"
+              }`}
             >
               {renderInlineFormatting(quoteMatch[1], isUser)}
             </div>
@@ -279,10 +312,14 @@ function FormattedMessage({ content, isUser }: FormattedMessageProps) {
         if (numberedMatch) {
           return (
             <div key={index} className="flex gap-2">
-              <span className={`flex-shrink-0 w-5 text-right ${isUser ? "text-white/80" : "text-gray-500"}`}>
+              <span
+                className={`flex-shrink-0 w-5 text-right font-semibold ${isUser ? "text-white/80" : "text-emerald-600"}`}
+              >
                 {numberedMatch[1]}.
               </span>
-              <span className={`flex-1 leading-relaxed ${isUser ? "text-white" : "text-gray-800"}`}>
+              <span
+                className={`flex-1 leading-relaxed ${isUser ? "text-white" : "text-gray-800"}`}
+              >
                 {renderInlineFormatting(numberedMatch[2], isUser)}
               </span>
             </div>
@@ -293,8 +330,14 @@ function FormattedMessage({ content, isUser }: FormattedMessageProps) {
         if (bulletMatch) {
           return (
             <div key={index} className="flex gap-2">
-              <span className={`flex-shrink-0 ${isUser ? "text-white/80" : "text-gray-400"}`}>•</span>
-              <span className={`flex-1 leading-relaxed ${isUser ? "text-white" : "text-gray-800"}`}>
+              <span
+                className={`flex-shrink-0 ${isUser ? "text-white/80" : "text-emerald-500"}`}
+              >
+                •
+              </span>
+              <span
+                className={`flex-1 leading-relaxed ${isUser ? "text-white" : "text-gray-800"}`}
+              >
                 {renderInlineFormatting(bulletMatch[1], isUser)}
               </span>
             </div>
@@ -303,14 +346,20 @@ function FormattedMessage({ content, isUser }: FormattedMessageProps) {
 
         if (/^[A-Z\s]{4,}$/.test(trimmed) || /^.{3,60}:$/.test(trimmed)) {
           return (
-            <p key={index} className={`font-semibold mt-2 ${isUser ? "text-white" : "text-gray-900"}`}>
+            <p
+              key={index}
+              className={`font-semibold mt-2 ${isUser ? "text-white" : "text-emerald-900"}`}
+            >
               {renderInlineFormatting(trimmed, isUser)}
             </p>
           );
         }
 
         return (
-          <p key={index} className={`leading-relaxed ${isUser ? "text-white" : "text-gray-800"}`}>
+          <p
+            key={index}
+            className={`leading-relaxed ${isUser ? "text-white" : "text-gray-800"}`}
+          >
             {renderInlineFormatting(trimmed, isUser)}
           </p>
         );
@@ -334,24 +383,37 @@ function EmptyState({ onSuggestion }: EmptyStateProps) {
       transition={{ duration: 0.35 }}
       className="flex flex-col items-center justify-center flex-1 px-6 py-8 text-center"
     >
-      <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mb-5 shadow-lg">
-        <Sparkles className="w-7 h-7 text-white" />
+      {/* Icon */}
+      <div className="relative mb-5">
+        <div className="w-20 h-20 rounded-[28px] bg-gradient-to-br from-emerald-700 to-teal-600 flex items-center justify-center shadow-xl shadow-emerald-900/25">
+          <Sparkles className="w-9 h-9 text-white" />
+        </div>
+        <div className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center">
+          <span className="text-[9px] font-black text-amber-900">AI</span>
+        </div>
       </div>
-      <h1 className="text-xl font-bold text-gray-900">Mufassir</h1>
-      <p className="text-sm text-text-secondary mt-2 max-w-[260px] leading-relaxed">
-        Asisten Al-Quran berbasis AI. Tanya apa saja tentang ayat, tafsir, dan ibadah.
+
+      <h1 className="text-2xl font-bold tracking-tight text-emerald-950">
+        Mufassir
+      </h1>
+      <p className="text-sm text-gray-500 mt-2 max-w-[260px] leading-relaxed">
+        Asisten Al-Quran berbasis AI. Tanya apa saja tentang ayat, tafsir, dan
+        ibadah.
       </p>
 
       {/* Suggestion chips */}
-      <div className="mt-8 w-full flex flex-col gap-2">
+      <div className="mt-8 w-full flex flex-col gap-2.5">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">
+          Pertanyaan populer
+        </p>
         {SUGGESTION_PROMPTS.map((prompt) => (
           <button
             key={prompt}
             onClick={() => onSuggestion(prompt)}
-            className="flex items-center justify-between w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-left text-sm text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-all shadow-sm"
+            className="flex items-center justify-between w-full bg-white border border-emerald-100 rounded-2xl px-4 py-3.5 text-left text-sm text-gray-700 hover:border-emerald-300 hover:shadow-sm hover:shadow-emerald-900/5 transition-all active:scale-[0.98]"
           >
-            <span>{prompt}</span>
-            <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
+            <span className="font-medium">{prompt}</span>
+            <ChevronRight className="w-4 h-4 text-emerald-400 flex-shrink-0 ml-2" />
           </button>
         ))}
       </div>
@@ -408,30 +470,40 @@ function Sidebar({
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: -32, opacity: 0 }}
           transition={{ duration: 0.24, ease: "easeOut" }}
-          className="absolute inset-y-0 left-0 z-10 w-[78%] max-w-[300px] bg-[#f5f2ea]"
+          className="absolute inset-y-0 left-0 z-10 w-[78%] max-w-[300px]"
         >
-          <div className="flex h-full flex-col border-r border-black/5 bg-[#f5f2ea]">
+          <div className="flex h-full flex-col bg-[linear-gradient(180deg,#022c22_0%,#053d2e_50%,#064e3b_100%)]">
+            {/* Decorative top accent */}
+            <div className="absolute top-0 left-0 right-0 h-32 bg-[radial-gradient(ellipse_at_top_left,rgba(16,185,129,0.15),transparent_70%)] pointer-events-none" />
+
             {/* Drawer header */}
-            <div className="flex items-center justify-between px-4 pt-5 pb-4 border-b border-black/5">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center">
-                  <Sparkles className="w-3.5 h-3.5 text-white" />
+            <div className="relative z-10 flex items-center justify-between px-4 pt-5 pb-4 border-b border-white/8">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-sm">
+                  <Sparkles className="w-4 h-4 text-white" />
                 </div>
-                <span className="font-bold text-sm text-gray-900">Mufassir</span>
+                <div>
+                  <span className="font-bold text-sm text-white leading-none block">
+                    Mufassir
+                  </span>
+                  <span className="text-[10px] text-emerald-400/80 font-medium">
+                    AI Guide
+                  </span>
+                </div>
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
               >
-                <X className="w-4 h-4 text-gray-500" />
+                <X className="w-4 h-4 text-white/60" />
               </button>
             </div>
 
             {/* New Chat button */}
-            <div className="px-3 pt-3 pb-2">
+            <div className="relative z-10 px-3 pt-3.5 pb-2">
               <button
                 onClick={onNewChat}
-                className="flex items-center gap-2 w-full bg-black text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-gray-900 transition-colors"
+                className="flex items-center justify-center gap-2 w-full bg-white text-emerald-900 rounded-2xl px-4 py-2.5 text-sm font-bold hover:bg-emerald-50 transition-colors shadow-lg shadow-black/20 active:scale-[0.98]"
               >
                 <Plus className="w-4 h-4" />
                 <span>Chat Baru</span>
@@ -439,18 +511,21 @@ function Sidebar({
             </div>
 
             {/* History */}
-            <div className="flex-1 overflow-y-auto px-3 pb-6">
+            <div className="relative z-10 flex-1 overflow-y-auto px-3 pb-6 hide-scrollbar">
               {conversations.length === 0 ? (
-                <p className="text-xs text-text-secondary text-center mt-8">
-                  Belum ada riwayat percakapan
-                </p>
+                <div className="mt-10 flex flex-col items-center text-center px-4">
+                  <MessageSquare className="w-8 h-8 text-emerald-700/50 mb-3" />
+                  <p className="text-xs text-emerald-400/60 leading-relaxed">
+                    Belum ada riwayat percakapan
+                  </p>
+                </div>
               ) : (
                 groupOrder.map((label) => {
                   const items = grouped[label];
                   if (!items || items.length === 0) return null;
                   return (
                     <div key={label} className="mt-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary px-1 mb-1">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-500/60 px-1 mb-2">
                         {label}
                       </p>
                       {items.map((conv) => (
@@ -460,15 +535,17 @@ function Sidebar({
                             onSelectConversation(conv.id);
                             onClose();
                           }}
-                          className={`flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors mb-0.5 ${
+                          className={`flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-left text-sm transition-all mb-0.5 ${
                             conv.id === activeConversationId
-                              ? "bg-black text-white font-semibold"
-                              : "text-gray-700 hover:bg-white/80"
+                              ? "bg-emerald-500/25 text-white font-semibold ring-1 ring-emerald-400/30"
+                              : "text-white/65 hover:bg-white/8 hover:text-white/90"
                           }`}
                         >
                           <MessageSquare
                             className={`w-3.5 h-3.5 flex-shrink-0 ${
-                              conv.id === activeConversationId ? "text-white/80" : "text-gray-400"
+                              conv.id === activeConversationId
+                                ? "text-emerald-400"
+                                : "text-white/30"
                             }`}
                           />
                           <span className="truncate">{conv.title}</span>
@@ -478,6 +555,13 @@ function Sidebar({
                   );
                 })
               )}
+            </div>
+
+            {/* Bottom brand footer */}
+            <div className="relative z-10 px-4 py-4 border-t border-white/8">
+              <p className="text-[10px] text-emerald-600/50 text-center font-medium">
+                Quran AI · Mufassir v1
+              </p>
             </div>
           </div>
         </motion.aside>
@@ -505,7 +589,6 @@ function InputBar({ value, isLoading, onChange, onSubmit }: InputBarProps) {
     }
   };
 
-  // Auto-resize textarea up to ~4 lines
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -513,13 +596,21 @@ function InputBar({ value, isLoading, onChange, onSubmit }: InputBarProps) {
     el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
   }, [value]);
 
+  const hasValue = value.trim().length > 0;
+
   return (
-    <div className="px-3 pb-4 pt-2 bg-background">
-      <div className="flex items-end gap-2 bg-white border border-gray-200 rounded-[24px] px-3 py-2 shadow-md">
+    <div className="px-4 pb-5 pt-2">
+      <div
+        className={`flex items-end gap-2 bg-white border rounded-[24px] px-3 py-2 shadow-sm transition-all ${
+          hasValue
+            ? "border-emerald-300 shadow-emerald-900/8"
+            : "border-emerald-100 shadow-emerald-900/5"
+        }`}
+      >
         {/* Microphone */}
         <button
           type="button"
-          className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0 mb-0.5"
+          className="w-8 h-8 flex items-center justify-center rounded-full text-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors flex-shrink-0 mb-0.5"
         >
           <Mic className="w-[18px] h-[18px]" />
         </button>
@@ -540,12 +631,19 @@ function InputBar({ value, isLoading, onChange, onSubmit }: InputBarProps) {
         <button
           type="button"
           onClick={onSubmit}
-          disabled={!value.trim() || isLoading}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-black text-white flex-shrink-0 mb-0.5 transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-800 active:scale-95"
+          disabled={!hasValue || isLoading}
+          className={`w-8 h-8 flex items-center justify-center rounded-full flex-shrink-0 mb-0.5 transition-all active:scale-90 ${
+            hasValue && !isLoading
+              ? "bg-gradient-to-br from-emerald-700 to-teal-600 text-white shadow-md shadow-emerald-900/25"
+              : "bg-gray-100 text-gray-300 cursor-not-allowed"
+          }`}
         >
           <ArrowUp className="w-4 h-4" />
         </button>
       </div>
+      <p className="text-center text-[10px] text-gray-400/70 mt-2 font-medium">
+        Quran AI · Mufassir dapat membuat kesalahan
+      </p>
     </div>
   );
 }
@@ -555,17 +653,18 @@ function InputBar({ value, isLoading, onChange, onSubmit }: InputBarProps) {
 export default function AIChatPage() {
   const supabase = createClient();
 
-  // Auth
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Sidebar / conversation list
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [activeConversationId, setActiveConversationId] = useState<
+    string | null
+  >(null);
 
-  // Messages & streaming
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
+    null,
+  );
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
@@ -575,7 +674,6 @@ export default function AIChatPage() {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
     return () => {
       document.body.style.overflow = previousOverflow;
     };
@@ -651,7 +749,8 @@ export default function AIChatPage() {
 
             return [...fetchedMessages, ...optimisticMessages].sort(
               (a, b) =>
-                new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime(),
             );
           });
         });
@@ -669,7 +768,9 @@ export default function AIChatPage() {
     async (firstMessage: string): Promise<string | null> => {
       if (!userId) return null;
       const title =
-        firstMessage.length > 40 ? `${firstMessage.slice(0, 40)}…` : firstMessage;
+        firstMessage.length > 40
+          ? `${firstMessage.slice(0, 40)}…`
+          : firstMessage;
       const { data, error } = await supabase
         .from("chat_conversations")
         .insert({ user_id: userId, title })
@@ -718,12 +819,11 @@ export default function AIChatPage() {
     [supabase, fetchConversations],
   );
 
-  // ── Core send logic — used by both input bar and suggestion chips ─────────
+  // ── Core send logic ───────────────────────────────────────────────────────
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text.trim() || isTyping) return;
 
-      // 1. Show user message immediately (optimistic)
       const tempUserMsgId = `tmp-user-${Date.now()}`;
       const tempUserMsg: ChatMessage = {
         id: tempUserMsgId,
@@ -734,25 +834,24 @@ export default function AIChatPage() {
       setMessages((prev) => [...prev, tempUserMsg]);
       setIsTyping(true);
 
-      // 2. Ensure we have a conversation (create if new chat)
       let convId = activeConversationId;
       if (!convId) {
         convId = await createConversation(text);
         if (convId) setActiveConversationId(convId);
       }
 
-      // 3. Persist user message to DB & replace temp id
       if (convId) {
         persistMessage(convId, "user", text).then((realId) => {
           if (realId) {
             setMessages((prev) =>
-              prev.map((m) => (m.id === tempUserMsgId ? { ...m, id: realId } : m)),
+              prev.map((m) =>
+                m.id === tempUserMsgId ? { ...m, id: realId } : m,
+              ),
             );
           }
         });
       }
 
-      // 4. Call /api/chat and stream the response
       const tempAiMsgId = `tmp-ai-${Date.now()}`;
       const tempAiMsg: ChatMessage = {
         id: tempAiMsgId,
@@ -778,12 +877,10 @@ export default function AIChatPage() {
           throw new Error(`API error: ${res.status}`);
         }
 
-        // Add empty AI message and mark it as streaming
         setMessages((prev) => [...prev, tempAiMsg]);
         setStreamingMessageId(tempAiMsgId);
         setIsTyping(false);
 
-        // Read stream chunks and append to the AI message content
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let fullContent = "";
@@ -792,10 +889,7 @@ export default function AIChatPage() {
 
         const flushBufferedContent = (force = false) => {
           const now = Date.now();
-          if (!force && now - lastFlushAt < 40) {
-            return;
-          }
-
+          if (!force && now - lastFlushAt < 40) return;
           fullContent = pendingContent;
           setMessages((prev) =>
             prev.map((m) =>
@@ -814,28 +908,28 @@ export default function AIChatPage() {
         }
 
         flushBufferedContent(true);
-
         setStreamingMessageId(null);
 
-        // 5. Persist AI message to DB & replace temp id
         if (convId && fullContent) {
           persistMessage(convId, "assistant", fullContent).then((realId) => {
             if (realId) {
               setMessages((prev) =>
-                prev.map((m) => (m.id === tempAiMsgId ? { ...m, id: realId } : m)),
+                prev.map((m) =>
+                  m.id === tempAiMsgId ? { ...m, id: realId } : m,
+                ),
               );
             }
           });
           touchConversation(convId);
         }
       } catch {
-        // Show a friendly error bubble
         setStreamingMessageId(null);
         setIsTyping(false);
         const errorMsg: ChatMessage = {
           id: `err-${Date.now()}`,
           role: "assistant",
-          content: "Maaf, terjadi kesalahan saat menghubungi AI. Silakan coba lagi.",
+          content:
+            "Maaf, terjadi kesalahan saat menghubungi AI. Silakan coba lagi.",
           created_at: new Date().toISOString(),
         };
         setMessages((prev) => [
@@ -884,8 +978,8 @@ export default function AIChatPage() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-[100dvh] max-h-[100dvh] bg-[#f5f2ea] relative overflow-hidden">
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
+    <div className="h-[100dvh] max-h-[100dvh] bg-[linear-gradient(180deg,#eaf5f0_0%,#f4f9f6_30%,#ffffff_100%)] relative overflow-hidden">
+      {/* Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
         conversations={conversations}
@@ -899,47 +993,50 @@ export default function AIChatPage() {
       />
 
       <motion.div
-        animate={{
-          x: sidebarOpen ? 286 : 0,
-        }}
+        animate={{ x: sidebarOpen ? 286 : 0 }}
         transition={{ type: "spring", stiffness: 260, damping: 28 }}
-        className="relative z-20 flex h-full flex-col overflow-hidden bg-background"
+        className="relative z-20 flex h-full flex-col overflow-hidden bg-[linear-gradient(180deg,#eaf5f0_0%,#f4f9f6_30%,#ffffff_100%)]"
       >
         {sidebarOpen && (
           <button
             type="button"
             aria-label="Tutup sidebar"
-            className="absolute inset-0 z-30 bg-black/12"
+            className="absolute inset-0 z-30 bg-emerald-950/15"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
-        {/* ── Header ──────────────────────────────────────────────────────── */}
-        <header className="flex items-center justify-between px-4 pt-4 pb-3 bg-background z-10">
+        {/* Header */}
+        <header className="relative z-10 flex items-center justify-between px-4 pt-5 pb-3 border-b border-emerald-100/60">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-emerald-100 transition-colors"
           >
-            <Menu className="w-5 h-5 text-gray-700" />
+            <Menu className="w-5 h-5 text-emerald-800" />
           </button>
 
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold text-sm text-gray-900">Mufassir</span>
-            <span className="text-[10px] font-semibold text-white bg-black rounded-full px-1.5 py-0.5 leading-tight">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-700 to-teal-600 flex items-center justify-center shadow-sm shadow-emerald-900/20">
+              <Sparkles className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="font-bold text-[15px] text-emerald-950 tracking-tight">
+              Mufassir
+            </span>
+            <span className="text-[9px] font-bold text-white bg-gradient-to-r from-emerald-700 to-teal-600 rounded-full px-2 py-0.5 leading-tight shadow-sm shadow-emerald-900/15">
               AI
             </span>
           </div>
 
           <Link
             href="/"
-            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-emerald-100 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5 text-gray-700" />
+            <ArrowLeft className="w-5 h-5 text-emerald-800" />
           </Link>
         </header>
 
-        {/* ── Chat area ───────────────────────────────────────────────────── */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar overscroll-y-contain px-4 pt-2 flex flex-col">
+        {/* Chat area */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden hide-scrollbar overscroll-y-contain px-4 pt-3 flex flex-col">
           <AnimatePresence mode="wait">
             {messages.length === 0 && !isTyping ? (
               <EmptyState key="empty" onSuggestion={handleSuggestion} />
@@ -964,7 +1061,7 @@ export default function AIChatPage() {
           </AnimatePresence>
         </div>
 
-        {/* ── Input bar ───────────────────────────────────────────────────── */}
+        {/* Input bar */}
         <InputBar
           value={input}
           isLoading={isTyping || streamingMessageId !== null}

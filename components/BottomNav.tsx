@@ -17,9 +17,7 @@ export default function BottomNav() {
 
   const renderTab = (tab: (typeof tabs)[number]) => {
     const isActive =
-      tab.href === "/"
-        ? pathname === "/"
-        : pathname.startsWith(tab.href);
+      tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
     const Icon = tab.icon;
 
     return (
@@ -29,16 +27,24 @@ export default function BottomNav() {
         prefetch
         className="group flex flex-col items-center gap-1 py-2 px-2 flex-1"
       >
-        <div className={`relative flex items-center justify-center w-auto h-auto transition-transform ${isActive ? "scale-110" : "group-hover:scale-110"}`}>
+        <div
+          className={`relative flex items-center justify-center w-auto h-auto transition-transform ${
+            isActive ? "scale-110" : "group-hover:scale-110"
+          }`}
+        >
           <Icon
-            className={`w-[22px] h-[22px] transition-colors ${isActive ? "text-black" : "text-gray-400 group-hover:text-black"
-              }`}
+            className={`w-[22px] h-[22px] transition-colors ${
+              isActive ? "text-black" : "text-gray-400 group-hover:text-black"
+            }`}
             strokeWidth={isActive ? 2.5 : 2}
           />
         </div>
         <span
-          className={`text-[10px] transition-colors ${isActive ? "text-black font-bold" : "text-gray-400 font-medium group-hover:text-black"
-            }`}
+          className={`text-[10px] transition-colors ${
+            isActive
+              ? "text-black font-bold"
+              : "text-gray-400 font-medium group-hover:text-black"
+          }`}
         >
           {tab.label}
         </span>
