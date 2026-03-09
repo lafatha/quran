@@ -1,7 +1,26 @@
+export interface Reciter {
+  id: string;
+  name: string;
+  shortName: string;
+}
+
+export interface VerseAudioMap {
+  [key: string]: string;
+}
+
 export interface Verse {
   id: number;
   text: string;
+  transliteration: string;
   translation: string;
+  audio: VerseAudioMap;
+}
+
+export interface SurahSummary {
+  id: number;
+  name: string;
+  transliteration: string;
+  totalVerses: number;
 }
 
 export interface Surah {
@@ -9,9 +28,14 @@ export interface Surah {
   name: string;
   transliteration: string;
   translation: string;
-  type: string;
+  type: "meccan" | "medinan";
+  revelationPlace: string;
   total_verses: number;
+  description: string;
+  audioFull: VerseAudioMap;
   verses: Verse[];
+  nextSurah: SurahSummary | null;
+  previousSurah: SurahSummary | null;
 }
 
 export interface WeekDayItem {

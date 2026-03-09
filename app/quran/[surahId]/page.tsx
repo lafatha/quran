@@ -1,18 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Bookmark, Check, CheckCircle2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Bookmark,
+  Check,
+  CheckCircle2,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  Waves,
+  Headphones,
+} from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getQuranData } from "@/lib/quran";
+import { getQuranData, getReciterById, getReciters } from "@/lib/quran";
 import { markSurahAsRead, markSurahAsUnread } from "@/lib/supabase/reading";
 import type { Surah } from "@/lib/types";
+
+const DEFAULT_RECITER_ID = "05";
 
 export default function SurahReaderPage() {
   const router = useRouter();
   const params = useParams();
   const surahId = Number(params.surahId);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const verseRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const toastTimerRef = useRef<number | null>(null);
+  const resumeAfterReciterChangeRef = useRef(false);
 
   const [surah, setSurah] = useState<Surah | null>(null);
   const [allSurahs, setAllSurahs] = useState<Surah[]>([]);
@@ -21,17 +39,114 @@ export default function SurahReaderPage() {
   const [bookmarkedVerse, setBookmarkedVerse] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [selectedReciterId, setSelectedReciterId] = useState(DEFAULT_RECITER_ID);
+  const [activeVerseId, setActiveVerseId] = useState<number | null>(null);
+  const [playingVerseId, setPlayingVerseId] = useState<number | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playMode, setPlayMode] = useState<"verse" | "full">("verse");
+  const [isAudioLoading, setIsAudioLoading] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
 
+  const reciters = getReciters();
+  const selectedReciter = getReciterById(selectedReciterId);
   const prevSurah = allSurahs.find((item) => item.id === surahId - 1);
   const nextSurah = allSurahs.find((item) => item.id === surahId + 1);
+  const activeVerse = useMemo(
+    () => surah?.verses.find((verse) => verse.id === activeVerseId) ?? null,
+    [activeVerseId, surah],
+  );
+
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
+    }
+
+    toastTimerRef.current = window.setTimeout(() => {
+      setToastMessage(null);
+    }, 2500);
+  }, []);
+
+  const playAudioSource = useCallback(async (
+    source: string,
+    nextPlayMode: "verse" | "full",
+    verseId: number | null,
+    resetTime: boolean,
+  ) => {
+    if (!audioRef.current) {
+      return;
+    }
+
+    const audio = audioRef.current;
+    const currentSource = audio.currentSrc || audio.src;
+
+    setAudioError(null);
+    setPlayMode(nextPlayMode);
+    setPlayingVerseId(nextPlayMode === "verse" ? verseId : null);
+    setActiveVerseId(verseId);
+    setIsAudioLoading(true);
+
+    if (currentSource !== source) {
+      audio.src = source;
+      audio.load();
+    }
+
+    if (resetTime || currentSource !== source) {
+      audio.currentTime = 0;
+    }
+
+    try {
+      await audio.play();
+    } catch {
+      setIsPlaying(false);
+      setIsAudioLoading(false);
+      setAudioError("Browser menolak autoplay audio. Silakan tap lagi untuk memulai.");
+    }
+  }, []);
+
+  const playVerse = useCallback(async (verseId: number, preserveTime = false) => {
+    if (!surah) {
+      return;
+    }
+
+    const verse = surah.verses.find((item) => item.id === verseId);
+    const source = verse?.audio[selectedReciterId];
+    if (!verse || !source) {
+      setAudioError("Audio ayat untuk ustadz ini tidak tersedia.");
+      return;
+    }
+
+    await playAudioSource(source, "verse", verse.id, !preserveTime);
+  }, [playAudioSource, selectedReciterId, surah]);
+
+  const playFullSurah = useCallback(async (preserveTime = false) => {
+    if (!surah) {
+      return;
+    }
+
+    const source = surah.audioFull[selectedReciterId];
+    if (!source) {
+      setAudioError("Audio full surah untuk ustadz ini tidak tersedia.");
+      return;
+    }
+
+    await playAudioSource(source, "full", activeVerseId ?? surah.verses[0]?.id ?? null, !preserveTime);
+  }, [activeVerseId, playAudioSource, selectedReciterId, surah]);
 
   useEffect(() => {
     const supabase = createClient();
+    const audio = audioRef.current;
 
     Promise.all([getQuranData(), supabase.auth.getUser()]).then(async ([quranData, userResult]) => {
       const foundSurah = quranData.find((item) => item.id === surahId);
       setAllSurahs(quranData);
       setSurah(foundSurah ?? null);
+      setActiveVerseId(foundSurah?.verses[0]?.id ?? null);
+      setPlayingVerseId(null);
+      setIsPlaying(false);
+      setPlayMode("verse");
+      setAudioError(null);
 
       const user = userResult.data.user;
       if (user && foundSurah) {
@@ -46,25 +161,200 @@ export default function SurahReaderPage() {
             .maybeSingle(),
           supabase
             .from("reading_progress")
-            .select("is_completed")
+            .select("is_completed, last_ayat_read")
             .eq("user_id", user.id)
             .eq("surah_id", foundSurah.id)
             .maybeSingle(),
         ]);
 
+        const lastAyatRead = progressResult.data?.last_ayat_read ?? foundSurah.verses[0]?.id ?? null;
         setBookmarkedVerse(bookmarkResult.data?.ayat_number ?? null);
         setMarked(progressResult.data?.is_completed ?? false);
+        setActiveVerseId(bookmarkResult.data?.ayat_number ?? lastAyatRead);
       }
 
       setLoading(false);
     });
+
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.src = "";
+      }
+
+      if (toastTimerRef.current) {
+        window.clearTimeout(toastTimerRef.current);
+      }
+    };
   }, [surahId]);
 
-  function showToast(message: string) {
-    setToastMessage(message);
-    window.setTimeout(() => {
-      setToastMessage(null);
-    }, 2500);
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
+
+    function handleEnded() {
+      if (!surah) {
+        return;
+      }
+
+      if (playMode === "full") {
+        setIsPlaying(false);
+        return;
+      }
+
+      const currentIndex = surah.verses.findIndex((verse) => verse.id === playingVerseId);
+      const nextVerse = surah.verses[currentIndex + 1];
+
+      if (!nextVerse) {
+        setIsPlaying(false);
+        setPlayingVerseId(null);
+        showToast("Murattal ayat selesai.");
+        return;
+      }
+
+      void playVerse(nextVerse.id, true);
+    }
+
+    function handlePlay() {
+      setIsPlaying(true);
+      setIsAudioLoading(false);
+    }
+
+    function handlePause() {
+      setIsPlaying(false);
+    }
+
+    function handleWaiting() {
+      setIsAudioLoading(true);
+    }
+
+    function handleCanPlay() {
+      setIsAudioLoading(false);
+    }
+
+    function handleError() {
+      setIsPlaying(false);
+      setIsAudioLoading(false);
+      setAudioError("Audio tidak berhasil diputar. Coba pilih ustadz lain.");
+      showToast("Audio gagal diputar.");
+    }
+
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("waiting", handleWaiting);
+    audio.addEventListener("canplay", handleCanPlay);
+    audio.addEventListener("error", handleError);
+
+    return () => {
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("waiting", handleWaiting);
+      audio.removeEventListener("canplay", handleCanPlay);
+      audio.removeEventListener("error", handleError);
+    };
+  }, [playMode, playVerse, playingVerseId, showToast, surah]);
+
+  useEffect(() => {
+    if (!surah) {
+      return;
+    }
+
+    const shouldResume = resumeAfterReciterChangeRef.current;
+    resumeAfterReciterChangeRef.current = false;
+
+    if (!isPlaying) {
+      return;
+    }
+
+    if (playMode === "full") {
+      void playFullSurah(shouldResume);
+      return;
+    }
+
+    if (playingVerseId) {
+      void playVerse(playingVerseId, shouldResume);
+    }
+  }, [isPlaying, playFullSurah, playMode, playVerse, playingVerseId, selectedReciterId, surah]);
+
+  useEffect(() => {
+    if (!activeVerseId) {
+      return;
+    }
+
+    const verseElement = verseRefs.current[activeVerseId];
+    verseElement?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [activeVerseId]);
+
+  function stopPlayback() {
+    if (!audioRef.current) {
+      return;
+    }
+
+    audioRef.current.pause();
+    setIsPlaying(false);
+    setIsAudioLoading(false);
+  }
+
+  function handlePlayPauseVerse() {
+    if (!surah) {
+      return;
+    }
+
+    const targetVerseId = activeVerseId ?? surah.verses[0]?.id;
+    if (!targetVerseId) {
+      return;
+    }
+
+    if (isPlaying && playMode === "verse") {
+      stopPlayback();
+      return;
+    }
+
+    void playVerse(targetVerseId);
+  }
+
+  function handlePlayPauseFullSurah() {
+    if (!surah) {
+      return;
+    }
+
+    if (isPlaying && playMode === "full") {
+      stopPlayback();
+      return;
+    }
+
+    void playFullSurah();
+  }
+
+  function handleChangeReciter(reciterId: string) {
+    resumeAfterReciterChangeRef.current = isPlaying;
+    setSelectedReciterId(reciterId);
+    showToast(`Qari diubah ke ${getReciterById(reciterId).shortName}`);
+  }
+
+  function goToAdjacentVerse(direction: "prev" | "next") {
+    if (!surah) {
+      return;
+    }
+
+    const currentId = activeVerseId ?? surah.verses[0]?.id;
+    const currentIndex = surah.verses.findIndex((verse) => verse.id === currentId);
+    const nextIndex = direction === "prev" ? currentIndex - 1 : currentIndex + 1;
+    const targetVerse = surah.verses[nextIndex];
+
+    if (!targetVerse) {
+      return;
+    }
+
+    setActiveVerseId(targetVerse.id);
+
+    if (isPlaying && playMode === "verse") {
+      void playVerse(targetVerse.id);
+    }
   }
 
   async function toggleBookmark(verseId: number) {
@@ -90,6 +380,7 @@ export default function SurahReaderPage() {
     );
 
     setBookmarkedVerse(verseId);
+    setActiveVerseId(verseId);
     showToast(`Bookmark dipindah ke Ayat ${verseId}`);
   }
 
@@ -139,15 +430,18 @@ export default function SurahReaderPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: "easeOut" as const }}
-      className="pb-24 min-h-screen bg-background"
+      className="pb-36 min-h-screen bg-background"
     >
-      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-gray-100">
+      <audio ref={audioRef} preload="none" />
+
+      <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-emerald-100/80">
         <div className="flex items-center gap-3 px-4 pt-12 pb-3">
           <button onClick={() => router.back()}>
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="flex-1">
-            <p className="text-sm font-bold">{surah.transliteration}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold truncate">{surah.transliteration}</p>
+            <p className="text-[11px] text-emerald-700/70 truncate">{selectedReciter.name}</p>
           </div>
           <button
             onClick={toggleReadStatus}
@@ -181,8 +475,8 @@ export default function SurahReaderPage() {
         </div>
       </div>
 
-      <div className="px-5 mt-2 mb-6">
-        <div className="bg-emerald-600 rounded-2xl p-6 text-white text-center relative shadow-sm overflow-hidden flex flex-col items-center">
+      <div className="px-5 mt-2 mb-5">
+        <div className="rounded-[28px] p-6 text-white text-center relative shadow-sm overflow-hidden flex flex-col items-center bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.16),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(253,224,71,0.18),_transparent_30%),linear-gradient(145deg,#0f766e_0%,#115e59_50%,#022c22_100%)] border border-emerald-400/20">
           <div className="w-full flex justify-center mb-3">
             <p className="arabic-text text-5xl font-normal opacity-95 leading-relaxed drop-shadow-sm text-center" dir="ltr">
               {surah.name}
@@ -191,19 +485,22 @@ export default function SurahReaderPage() {
           <p className="text-2xl font-bold tracking-tight drop-shadow-sm">{surah.transliteration}</p>
           <p className="text-sm text-emerald-50 border-b border-white/20 inline-block pb-1.5 mt-1.5 px-3">{surah.translation}</p>
 
-          <div className="flex items-center justify-center gap-3 mt-5 text-xs font-semibold text-white">
+          <div className="flex items-center justify-center gap-3 mt-5 text-xs font-semibold text-white flex-wrap">
             <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full uppercase tracking-wider">
               {surah.type === "meccan" ? "Makkiyah" : "Madaniyah"}
             </span>
             <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full uppercase tracking-wider">
               {surah.total_verses} Ayat
             </span>
+            <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full uppercase tracking-wider inline-flex items-center gap-1">
+              <Headphones className="w-3.5 h-3.5" /> {reciters.length} Qari
+            </span>
           </div>
 
           {surah.id !== 1 && surah.id !== 9 && (
             <div className="flex flex-col items-center w-full">
               <div className="w-16 h-px bg-white/30 mx-auto mt-6 mb-5" />
-              <p className="arabic-text text-3xl opacity-95 leading-relaxed drop-shadow-sm" style={{ textAlign: "center" }}>
+              <p className="arabic-text text-3xl opacity-95 leading-relaxed drop-shadow-sm text-center">
                 بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
               </p>
             </div>
@@ -211,26 +508,149 @@ export default function SurahReaderPage() {
         </div>
       </div>
 
-      <div className="px-5 space-y-4">
-        {surah.verses.map((verse) => (
-          <div key={verse.id} className="bg-white rounded-xl p-4 border border-gray-50">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-8 h-8 bg-emerald-50 rounded-full flex items-center justify-center border border-emerald-100/50">
-                <span className="text-xs font-bold text-emerald-600">{verse.id}</span>
-              </div>
-              <button
-                onClick={() => toggleBookmark(verse.id)}
-                className={`p-2 rounded-full transition-all ${bookmarkedVerse === verse.id ? "bg-flame-orange/10 text-flame-orange" : "bg-gray-50 text-gray-400 hover:bg-gray-100"}`}
-                aria-label="Bookmark verse"
-              >
-                <Bookmark className="w-4 h-4" fill={bookmarkedVerse === verse.id ? "currentColor" : "none"} />
-              </button>
+      <div className="px-5 mb-5">
+        <div className="bg-white rounded-[26px] border border-emerald-100/80 shadow-sm p-4 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Murattal Interaktif</p>
+              <p className="text-xs text-text-secondary mt-1">Ayat aktif akan di-scroll otomatis dan diberi glow lembut.</p>
             </div>
-
-            <p className="arabic-text text-2xl leading-loose text-gray-900 mb-4">{verse.text}</p>
-            <p className="translation-text text-sm leading-relaxed">{verse.translation}</p>
+            <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+              <Waves className="w-5 h-5" />
+            </div>
           </div>
-        ))}
+
+          <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+            {reciters.map((reciter) => (
+              <button
+                key={reciter.id}
+                onClick={() => handleChangeReciter(reciter.id)}
+                className={`px-3 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all border ${selectedReciterId === reciter.id ? "bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-900/10" : "bg-emerald-50/70 text-emerald-700 border-emerald-100 hover:bg-emerald-100"}`}
+              >
+                {reciter.shortName}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={handlePlayPauseVerse}
+              className={`rounded-2xl p-4 text-left border transition-all ${playMode === "verse" && isPlaying ? "bg-emerald-600 text-white border-emerald-600" : "bg-emerald-50/60 text-emerald-900 border-emerald-100"}`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] opacity-70">Per ayat</p>
+                  <p className="text-sm font-semibold mt-1">Sinkron presisi</p>
+                </div>
+                {playMode === "verse" && isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              </div>
+            </button>
+
+            <button
+              onClick={handlePlayPauseFullSurah}
+              className={`rounded-2xl p-4 text-left border transition-all ${playMode === "full" && isPlaying ? "bg-gray-900 text-white border-gray-900" : "bg-gray-50 text-gray-900 border-gray-100"}`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] opacity-70">Full surah</p>
+                  <p className="text-sm font-semibold mt-1">Alur penuh</p>
+                </div>
+                {playMode === "full" && isPlaying ? <Pause className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              </div>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => goToAdjacentVerse("prev")}
+              className="w-11 h-11 rounded-2xl border border-emerald-100 bg-emerald-50 text-emerald-700 flex items-center justify-center"
+              aria-label="Ayat sebelumnya"
+            >
+              <SkipBack className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handlePlayPauseVerse}
+              className="flex-1 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-3.5 font-semibold text-sm inline-flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/10"
+            >
+              {isPlaying && playMode === "verse" ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              {isAudioLoading ? "Menyiapkan audio..." : `Putar Ayat ${activeVerseId ?? 1}`}
+            </button>
+            <button
+              onClick={() => goToAdjacentVerse("next")}
+              className="w-11 h-11 rounded-2xl border border-emerald-100 bg-emerald-50 text-emerald-700 flex items-center justify-center"
+              aria-label="Ayat berikutnya"
+            >
+              <SkipForward className="w-4 h-4" />
+            </button>
+          </div>
+
+          {(activeVerse || audioError) && (
+            <div className="rounded-2xl bg-emerald-50/70 border border-emerald-100 px-4 py-3">
+              <p className="text-xs text-emerald-700 font-semibold uppercase tracking-[0.18em]">Sedang aktif</p>
+              {audioError ? (
+                <p className="text-sm text-red-500 mt-1">{audioError}</p>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">Ayat {activeVerse?.id} · {selectedReciter.shortName}</p>
+                  <p className="text-xs text-text-secondary mt-1 line-clamp-2">{activeVerse?.translation}</p>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="px-5 space-y-4">
+        {surah.verses.map((verse) => {
+          const isActive = activeVerseId === verse.id;
+          const isBookmarked = bookmarkedVerse === verse.id;
+
+          return (
+            <div
+              key={verse.id}
+              ref={(element) => {
+                verseRefs.current[verse.id] = element;
+              }}
+              className={`rounded-[24px] p-4 border transition-all duration-300 relative overflow-hidden ${isActive ? "bg-gradient-to-br from-emerald-50 via-white to-amber-50 border-emerald-300 shadow-[0_18px_45px_-28px_rgba(13,148,136,0.55)]" : "bg-white border-gray-100"}`}
+            >
+              {isActive && <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(250,204,21,0.18),_transparent_28%),radial-gradient(circle_at_bottom_left,_rgba(16,185,129,0.14),_transparent_34%)]" />}
+
+              <div className="relative z-10 flex items-center justify-between mb-4 gap-3">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center border ${isActive ? "bg-emerald-600 border-emerald-600 text-white" : "bg-emerald-50 border-emerald-100/50 text-emerald-600"}`}>
+                  <span className="text-xs font-bold">{verse.id}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setActiveVerseId(verse.id);
+                      void playVerse(verse.id);
+                    }}
+                    className={`p-2 rounded-full transition-all ${isActive && isPlaying && playMode === "verse" && playingVerseId === verse.id ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
+                    aria-label={`Putar ayat ${verse.id}`}
+                  >
+                    {isActive && isPlaying && playMode === "verse" && playingVerseId === verse.id ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={() => toggleBookmark(verse.id)}
+                    className={`p-2 rounded-full transition-all ${isBookmarked ? "bg-flame-orange/10 text-flame-orange" : "bg-gray-50 text-gray-400 hover:bg-gray-100"}`}
+                    aria-label="Bookmark verse"
+                  >
+                    <Bookmark className="w-4 h-4" fill={isBookmarked ? "currentColor" : "none"} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="relative z-10">
+                <p className={`arabic-text text-[2rem] leading-loose mb-4 transition-colors ${isActive ? "text-emerald-950" : "text-gray-900"}`}>{verse.text}</p>
+                <p className={`text-xs uppercase tracking-[0.18em] mb-2 ${isActive ? "text-emerald-700" : "text-gray-400"}`}>Latin</p>
+                <p className="text-sm leading-relaxed text-gray-600 italic">{verse.transliteration}</p>
+                <div className="h-px bg-gradient-to-r from-transparent via-emerald-100 to-transparent my-4" />
+                <p className="translation-text text-sm leading-relaxed">{verse.translation}</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="pt-6 pb-8 px-5 flex justify-center mt-4">
@@ -244,13 +664,48 @@ export default function SurahReaderPage() {
       </div>
 
       <AnimatePresence>
+        {activeVerse && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 30 }}
+            transition={{ duration: 0.2, ease: "easeOut" as const }}
+            className="fixed bottom-24 left-0 right-0 z-40 px-4 mx-auto max-w-[390px]"
+          >
+            <div className="rounded-[24px] bg-[#0f172a]/92 text-white border border-white/10 backdrop-blur-xl px-4 py-3 shadow-2xl shadow-emerald-950/20">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handlePlayPauseVerse}
+                  className="w-11 h-11 rounded-2xl bg-white text-slate-900 flex items-center justify-center shrink-0"
+                  aria-label="Toggle playback"
+                >
+                  {isPlaying && playMode === "verse" ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                </button>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] uppercase tracking-[0.22em] text-emerald-200/80">Ayat aktif</p>
+                  <p className="text-sm font-semibold truncate">Ayat {activeVerse.id} · {selectedReciter.shortName}</p>
+                  <p className="text-xs text-slate-300 truncate mt-1">{activeVerse.translation}</p>
+                </div>
+                <button
+                  onClick={handlePlayPauseFullSurah}
+                  className="px-3 py-2 rounded-2xl bg-white/10 text-xs font-semibold whitespace-nowrap"
+                >
+                  {isPlaying && playMode === "full" ? "Pause Full" : "Full Surah"}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {toastMessage && (
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="fixed bottom-24 left-0 right-0 z-50 flex justify-center pointer-events-none px-4 mx-auto max-w-[390px]"
+            className="fixed bottom-[9.5rem] left-0 right-0 z-50 flex justify-center pointer-events-none px-4 mx-auto max-w-[390px]"
           >
             <div className="bg-[#1C1C1E] backdrop-blur-xl px-5 py-3.5 rounded-2xl shadow-2xl flex items-center justify-center gap-3 w-auto border border-white/5">
               <Bookmark className="w-4 h-4 text-flame-orange shrink-0" fill="currentColor" />
@@ -259,7 +714,6 @@ export default function SurahReaderPage() {
           </motion.div>
         )}
       </AnimatePresence>
-
     </motion.div>
   );
 }

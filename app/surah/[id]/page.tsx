@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Share2, MoreHorizontal, Bookmark, Flame, Sparkles } from "lucide-react";
+import { ArrowLeft, Bookmark, Flame, Sparkles, Volume2, ScrollText } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -64,13 +64,8 @@ export default function SurahDetailPage() {
             <ArrowLeft className="w-5 h-5 text-white" />
           </Link>
           <span className="text-white font-semibold text-sm">Surah</span>
-          <div className="flex gap-2">
-            <button className="w-9 h-9 bg-black/30 backdrop-blur-sm rounded-full flex items-center justify-center">
-              <Share2 className="w-4 h-4 text-white" />
-            </button>
-            <button className="w-9 h-9 bg-black/30 backdrop-blur-sm rounded-full flex items-center justify-center">
-              <MoreHorizontal className="w-4 h-4 text-white" />
-            </button>
+          <div className="w-9 h-9 bg-black/30 backdrop-blur-sm rounded-full flex items-center justify-center">
+            <Bookmark className="w-4 h-4 text-white" />
           </div>
         </div>
       </div>
@@ -113,20 +108,39 @@ export default function SurahDetailPage() {
           </div>
         </motion.div>
 
-        <motion.div initial="hidden" animate="visible" custom={3} variants={fadeUp} className="mt-5">
+        <motion.div initial="hidden" animate="visible" custom={3} variants={fadeUp} className="bg-white rounded-2xl shadow-sm p-4 mt-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+              <Volume2 className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-900">Audio interaktif tersedia di Reader</p>
+              <p className="text-xs text-text-secondary leading-relaxed mt-1">
+                Pilih ustadz, putar ayat berurutan, auto-scroll, dan highlight ayat aktif dengan glow lembut.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div initial="hidden" animate="visible" custom={4} variants={fadeUp} className="mt-5">
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-bold text-base">Daftar Ayat</h3>
             <Link href={`/quran/${surah.id}`} className="text-sm text-done-green font-medium">Buka Reader</Link>
           </div>
           {surah.verses.slice(0, 5).map((ayat) => (
             <div key={ayat.id} className="bg-gray-100 rounded-xl px-4 py-3 mb-2 flex justify-between items-center">
-              <span className="text-sm font-medium">Ayat {ayat.id}</span>
-              <span className="text-xs text-text-secondary">{ayat.text.split(" ").length} kata</span>
+              <div>
+                <span className="text-sm font-medium">Ayat {ayat.id}</span>
+                <p className="text-[11px] text-text-secondary mt-1 line-clamp-1">{ayat.translation}</p>
+              </div>
+              <span className="text-xs text-text-secondary inline-flex items-center gap-1 shrink-0">
+                <ScrollText className="w-3 h-3" /> {ayat.text.split(" ").length} kata
+              </span>
             </div>
           ))}
         </motion.div>
 
-        <motion.div initial="hidden" animate="visible" custom={4} variants={fadeUp} className="flex gap-3 mt-5">
+        <motion.div initial="hidden" animate="visible" custom={5} variants={fadeUp} className="flex gap-3 mt-5">
           <Link
             href="/ai-chat"
             className="flex-1 border-2 border-black rounded-xl py-3 text-center font-semibold text-sm flex items-center justify-center gap-1.5"

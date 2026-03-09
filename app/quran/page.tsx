@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Search, BookOpen, ChevronRight } from "lucide-react";
+import { Search, BookOpen, ChevronRight, Volume2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { getQuranData } from "@/lib/quran";
+import { getQuranData, getReciters } from "@/lib/quran";
 import type { Surah } from "@/lib/types";
 
 interface LastRead {
@@ -18,6 +18,7 @@ export default function QuranPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [lastRead, setLastRead] = useState<LastRead | null>(null);
+  const reciters = getReciters();
 
   useEffect(() => {
     const supabase = createClient();
@@ -84,17 +85,31 @@ export default function QuranPage() {
       </div>
 
       <div className="px-5 mb-7">
-        <div className="rounded-2xl p-5 text-white shadow-sm relative overflow-hidden bg-emerald-600">
+        <div className="rounded-[28px] p-5 text-white shadow-sm relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.22),_transparent_36%),linear-gradient(135deg,#0f766e_0%,#115e59_45%,#022c22_100%)] border border-emerald-400/20">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,_rgba(253,224,71,0.16),_transparent_30%)]" />
           <div className="absolute top-0 right-0 p-4 opacity-15">
             <BookOpen className="w-16 h-16 -mt-2 -mr-2" />
           </div>
-          <div className="relative z-10 flex items-center justify-between">
-            <div>
+          <div className="relative z-10 flex items-start justify-between gap-4">
+            <div className="min-w-0">
               <p className="text-[10px] uppercase tracking-wider text-emerald-50 font-bold mb-1">Terakhir Dibaca</p>
               <p className="text-xl font-bold tracking-tight mt-1">{lastRead?.surahName ?? "Belum ada"}</p>
               <p className="text-sm text-emerald-50 mt-1">
                 {lastRead ? `Ayat ${lastRead.ayatNumber}` : "Mulai bacaan pertamamu"}
               </p>
+              <div className="flex items-center gap-2 mt-4 text-[11px] text-emerald-50/90">
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 backdrop-blur-sm">
+                  <Volume2 className="w-3 h-3" /> {reciters.length} Qari
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 backdrop-blur-sm">
+                  <Sparkles className="w-3 h-3" /> Auto-scroll ayat
+                </span>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/15 bg-white/10 px-3 py-2 backdrop-blur-sm shrink-0">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-50/70">Koleksi</p>
+              <p className="text-lg font-bold leading-tight">114</p>
+              <p className="text-[11px] text-emerald-50/80">surah lengkap</p>
             </div>
           </div>
         </div>
@@ -119,8 +134,8 @@ export default function QuranPage() {
           <div className="space-y-2">
             {filtered.map((surah) => (
               <Link key={surah.id} href={`/quran/${surah.id}`}>
-                <div className="bg-white rounded-xl p-4 flex items-center gap-4 hover:bg-emerald-50/50 active:scale-[0.98] transition-all border border-emerald-50 hover:border-emerald-200 hover:shadow-md hover:shadow-emerald-500/5 group">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm text-emerald-600 bg-emerald-50 border border-emerald-100/50 relative overflow-hidden group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                <div className="bg-white rounded-[22px] p-4 flex items-center gap-4 hover:bg-emerald-50/50 active:scale-[0.98] transition-all border border-emerald-100/70 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-900/5 group">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm text-emerald-700 bg-gradient-to-br from-emerald-50 to-teal-100 border border-emerald-200/80 relative overflow-hidden group-hover:from-emerald-500 group-hover:to-teal-500 group-hover:text-white transition-colors">
                     <span className="relative z-10">{surah.id}</span>
                   </div>
 
@@ -135,14 +150,17 @@ export default function QuranPage() {
                         {surah.type === "meccan" ? "Makkiyah" : "Madaniyah"}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 group-hover:text-emerald-600/70 transition-colors">
-                      {surah.translation} <span className="mx-1 opacity-50">•</span> {surah.total_verses} ayat
-                    </p>
-                  </div>
+                     <p className="text-xs text-gray-500 group-hover:text-emerald-600/70 transition-colors">
+                       {surah.translation} <span className="mx-1 opacity-50">•</span> {surah.total_verses} ayat
+                     </p>
+                     <p className="text-[11px] text-emerald-700/70 mt-1 truncate">
+                       {surah.revelationPlace} <span className="mx-1 opacity-40">•</span> {Object.keys(surah.audioFull).length} pilihan audio
+                     </p>
+                   </div>
 
-                  <p className="arabic-text text-xl text-emerald-900 shrink-0 font-normal opacity-90 group-hover:text-emerald-600 transition-colors">
-                    {surah.name}
-                  </p>
+                   <p className="arabic-text text-xl text-emerald-900 shrink-0 font-normal opacity-90 group-hover:text-emerald-600 transition-colors max-w-[92px] truncate">
+                     {surah.name}
+                   </p>
 
                   <ChevronRight className="w-4 h-4 text-emerald-200 shrink-0 group-hover:text-emerald-500 transition-colors group-hover:translate-x-0.5" />
                 </div>
