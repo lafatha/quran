@@ -42,4 +42,5 @@ export interface WeekDayItem {
   day: string;
   date: number;
   status: "completed" | "default" | "today" | "future";
+  progress: number; // 0 to 100
 }

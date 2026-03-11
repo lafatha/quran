@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, Flame } from "lucide-react";
+import { Flame, Plus, MoreVertical } from "lucide-react";
 import WeeklyCalendarStrip from "@/components/WeeklyCalendarStrip";
-import CircularProgress from "@/components/CircularProgress";
-import MacroCard from "@/components/MacroCard";
-import RecentCard from "@/components/RecentCard";
+import PrayerTimeWidget from "@/components/PrayerTimeWidget";
+import DuaWidget from "@/components/DuaWidget";
+import FeatureGrid from "@/components/FeatureGrid";
+import DailyAyahCard from "@/components/DailyAyahCard";
+import QuranProgressCard from "@/components/QuranProgressCard";
 import { createClient } from "@/lib/supabase/client";
 import { getQuranData } from "@/lib/quran";
 import type { WeekDayItem } from "@/lib/types";
@@ -47,12 +49,23 @@ function formatTime(value: string) {
   return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 }
 
-function getWeeklyDays(completedDates: Set<string>) {
-  const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+function getWeeklyDays(weekLogs: any[], goals: any) {
+  const dayNames = ["S", "M", "T", "W", "T", "F", "S"];
   const items: WeekDayItem[] = [];
   const today = new Date();
+  
+  // Create a map of date -> progress percentage
+  const progressMap = new Map<string, number>();
+  weekLogs.forEach(log => {
+    // Calculate progress based on ayat read vs goal
+    // Default goal is 20 if not set (just a fallback)
+    const goal = goals?.ayat_goal || 20; 
+    const read = log.ayat_read || 0;
+    const percentage = Math.min(100, Math.round((read / goal) * 100));
+    progressMap.set(log.date, percentage);
+  });
 
-  for (let index = 6; index >= 0; index -= 1) {
+  for (let index = 3; index >= -3; index -= 1) {
     const target = new Date(today);
     target.setDate(today.getDate() - index);
     const year = target.getFullYear();
@@ -60,17 +73,22 @@ function getWeeklyDays(completedDates: Set<string>) {
     const date = `${target.getDate()}`.padStart(2, "0");
     const isoDate = `${year}-${month}-${date}`;
 
-    const status: WeekDayItem["status"] =
-      isoDate === `${today.getFullYear()}-${`${today.getMonth() + 1}`.padStart(2, "0")}-${`${today.getDate()}`.padStart(2, "0")}`
-        ? "today"
-        : completedDates.has(isoDate)
-          ? "completed"
-          : "default";
+    const todayStr = `${today.getFullYear()}-${`${today.getMonth() + 1}`.padStart(2, "0")}-${`${today.getDate()}`.padStart(2, "0")}`;
+    const isToday = isoDate === todayStr;
+    const progress = progressMap.get(isoDate) || 0;
+    
+    let status: WeekDayItem["status"] = "default";
+    if (isToday) {
+      status = "today";
+    } else if (progress >= 100) {
+      status = "completed";
+    }
 
     items.push({
       day: dayNames[target.getDay()],
       date: target.getDate(),
       status,
+      progress
     });
   }
 
@@ -88,6 +106,8 @@ export default function HomePage() {
     supabase.auth.getUser().then(async ({ data }) => {
       const user = data.user;
       if (!user) {
+        // Generate default week days even if not logged in
+        setWeekDays(getWeeklyDays([], null));
         return;
       }
 
@@ -143,8 +163,7 @@ export default function HomePage() {
         streak: streak?.current_streak ?? 0,
       });
 
-      const completedDates = new Set(weekLogs.map((item) => item.date));
-      setWeekDays(getWeeklyDays(completedDates));
+      setWeekDays(getWeeklyDays(weekLogs, goals));
 
       const recentItems = recentRows.map((item) => {
         const surah = surahs.find((row) => row.id === item.surah_id);
@@ -162,63 +181,52 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white pb-24">
-      <div className="flex justify-between items-center px-5 pt-5 pb-2">
-        <div className="flex items-center gap-2">
-          <BookOpen className="w-6 h-6" />
-          <span className="text-lg font-bold">Quran AI</span>
+    <div className="min-h-screen bg-gray-50 pb-32 relative font-sans pt-6">
+      {/* Header */}
+      <div className="flex justify-between items-center px-6 pb-4">
+        <div className="flex items-center gap-3">
+          <span className="text-xl font-bold text-black tracking-tight">Mufassir</span>
         </div>
-        <div className="flex items-center gap-1.5 bg-white rounded-full px-3 py-1.5 shadow-sm">
-          <Flame className="w-4 h-4 text-flame-orange" />
-          <span className="font-bold text-sm">{progress.streak}</span>
-        </div>
+        <button className="p-2 -mr-2 text-gray-600 hover:text-black transition-colors">
+          <MoreVertical className="w-5 h-5" />
+        </button>
       </div>
 
-      <div className="px-3">
+      {/* Calendar Strip */}
+      <div className="px-4 mb-4">
         <WeeklyCalendarStrip days={weekDays} />
       </div>
 
-      <div className="px-4 mt-2">
-        <div className="bg-white rounded-2xl shadow-sm p-5 flex items-center justify-between">
-          <div>
-            <div className="flex items-baseline gap-0.5">
-              <span className="text-5xl font-bold tracking-tight">{progress.ayatRead}</span>
-              <span className="text-lg text-text-secondary font-medium">/{progress.ayatGoal}</span>
-            </div>
-            <p className="text-sm text-text-secondary mt-1">Ayat dibaca hari ini</p>
-          </div>
-          <CircularProgress value={progress.ayatRead} max={progress.ayatGoal} size={90} strokeWidth={8} color="#000">
-            <Flame className="w-5 h-5 text-black" />
-          </CircularProgress>
+      {/* Prayer Time Widget & Dua Widget */}
+      <div className="px-6 mb-6 grid grid-cols-2 gap-4">
+        <div className="col-span-1">
+          <PrayerTimeWidget />
+        </div>
+        <div className="col-span-1">
+          <DuaWidget />
         </div>
       </div>
 
-      <div className="mt-4 px-4">
-        <div className="flex gap-3 overflow-x-auto hide-scrollbar snap-x pb-2">
-          <MacroCard value={progress.surahRead} goal={progress.surahGoal} label="Surah" icon="📖" color="#EF4444" />
-          <MacroCard value={progress.halamanRead} goal={progress.halamanGoal} label="Halaman" icon="📄" color="#F97316" />
-          <MacroCard value={progress.menitRead} goal={progress.menitGoal} label="Menit" icon="⏱️" color="#3B82F6" />
-        </div>
+      {/* Feature Grid */}
+      <div className="px-6 mb-6">
+        <FeatureGrid />
       </div>
 
-      <div className="px-4 mt-6">
-        <h3 className="font-bold text-base mb-3">Terakhir Dibaca</h3>
-        {recentlyRead.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm p-4 text-sm text-text-secondary">Belum ada bacaan. Mulai dari halaman Quran.</div>
-        ) : (
-          recentlyRead.map((item) => (
-            <RecentCard
-              key={item.id}
-              id={item.id}
-              name={item.name}
-              ayatCount={item.ayatCount}
-              lastAyatRead={item.lastAyatRead}
-              time={item.time}
-            />
-          ))
-        )}
+      {/* Daily Ayah Card */}
+      <div className="px-6 mb-6">
+        <DailyAyahCard />
       </div>
 
+      {/* Quran Progress */}
+      <div className="px-6 mb-6">
+        <QuranProgressCard
+          surahName={recentlyRead[0]?.name}
+          juz={2} // Mocked for now
+          progressPercentage={73} // Mocked for now
+        />
+      </div>
+
+      {/* Floating Action Button (Plus) */}
     </div>
   );
 }
