@@ -4,7 +4,7 @@ import { Play, BookOpen, Share2 } from "lucide-react";
 
 export default function DailyAyahCard() {
   return (
-    <div className="bg-gradient-to-br from-deen-bg-light to-white rounded-[20px] p-5 shadow-sm border border-gray-100 relative overflow-hidden">
+    <div className="bg-gradient-to-br from-deen-bg-light to-white rounded-[20px] p-4 shadow-sm border border-gray-100 relative overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute right-0 top-0 w-32 h-32 opacity-5 pointer-events-none">
         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
@@ -30,15 +30,15 @@ export default function DailyAyahCard() {
         </div>
 
         <div className="flex items-center gap-4 border-t border-gray-100 pt-3">
-          <button className="flex items-center gap-1.5 text-[10px] font-medium text-gray-600 hover:text-deen-main transition-colors">
+          <button className="flex items-center gap-1.5 text-[10px] font-medium text-gray-600 hover:text-black transition-colors">
             <Play className="w-3 h-3" />
             Listen
           </button>
-          <button className="flex items-center gap-1.5 text-[10px] font-medium text-gray-600 hover:text-deen-main transition-colors">
+          <button className="flex items-center gap-1.5 text-[10px] font-medium text-gray-600 hover:text-black transition-colors">
             <BookOpen className="w-3 h-3" />
             Tafsir
           </button>
-          <button className="flex items-center gap-1.5 text-[10px] font-medium text-gray-600 hover:text-deen-main transition-colors ml-auto">
+          <button className="flex items-center gap-1.5 text-[10px] font-medium text-gray-600 hover:text-black transition-colors ml-auto">
             <Share2 className="w-3 h-3" />
             Share
           </button>

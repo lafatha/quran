@@ -19,7 +19,7 @@ export default function QuranProgressCard({
   totalAyat = 7,
 }: QuranProgressCardProps) {
   return (
-    <div className="bg-deen-bg-light rounded-[20px] p-5 border border-deen-main/10">
+    <div className="bg-deen-bg-light rounded-[20px] p-4 border border-deen-main/10">
       <div className="mb-4">
         <h3 className="text-lg font-bold text-gray-800">Quran Progress</h3>
         <p className="text-sm text-gray-500">

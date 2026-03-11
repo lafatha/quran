@@ -198,7 +198,7 @@ export default function HomePage() {
       </div>
 
       {/* Prayer Time Widget & Dua Widget */}
-      <div className="px-6 mb-6 grid grid-cols-2 gap-4">
+      <div className="px-6 mb-4 grid grid-cols-2 gap-3">
         <div className="col-span-1">
           <PrayerTimeWidget />
         </div>
@@ -208,17 +208,17 @@ export default function HomePage() {
       </div>
 
       {/* Feature Grid */}
-      <div className="px-6 mb-6">
+      <div className="px-6 mb-4">
         <FeatureGrid />
       </div>
 
       {/* Daily Ayah Card */}
-      <div className="px-6 mb-6">
+      <div className="px-6 mb-4">
         <DailyAyahCard />
       </div>
 
       {/* Quran Progress */}
-      <div className="px-6 mb-6">
+      <div className="px-6 mb-4">
         <QuranProgressCard
           surahName={recentlyRead[0]?.name}
           juz={2} // Mocked for now
