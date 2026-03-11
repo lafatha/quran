@@ -20,7 +20,7 @@ export default function DuaWidget() {
           رَبِّ زِدْنِي عِلْمًا
         </p>
         <p className="text-[10px] text-gray-600 font-medium line-clamp-2">
-          "My Lord, increase me in knowledge."
+          &ldquo;My Lord, increase me in knowledge.&rdquo;
         </p>
       </div>
     </div>

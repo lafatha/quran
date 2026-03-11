@@ -25,7 +25,7 @@ export default function DailyAyahCard() {
             ٱللَّهُ لَآ إِلَٰهَ إِلَّا هُوَ ٱلْحَىُّ ٱلْقَيُّومُ ۚ لَا تَأْخُذُهُۥ سِنَةٌۭ وَلَا نَوْمٌۭ
           </p>
           <p className="text-[10px] text-gray-600 leading-relaxed italic line-clamp-2">
-            "Allah - there is no deity except Him, the Ever-Living, the Sustainer of [all existence]..."
+          &ldquo;Allah - there is no deity except Him, the Ever-Living, the Sustainer of [all existence]...&rdquo;
           </p>
         </div>
 

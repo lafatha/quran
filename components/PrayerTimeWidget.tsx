@@ -1,6 +1,6 @@
 "use client";
 
-import { Moon, Landmark } from "lucide-react";
+import { Landmark } from "lucide-react";
 
 export default function PrayerTimeWidget() {
   // Mock data for now

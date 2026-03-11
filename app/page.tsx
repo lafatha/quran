@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Flame, Plus, MoreVertical } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import WeeklyCalendarStrip from "@/components/WeeklyCalendarStrip";
 import PrayerTimeWidget from "@/components/PrayerTimeWidget";
 import DuaWidget from "@/components/DuaWidget";
@@ -12,18 +12,6 @@ import { createClient } from "@/lib/supabase/client";
 import { getQuranData } from "@/lib/quran";
 import type { WeekDayItem } from "@/lib/types";
 
-interface DailyProgressState {
-  ayatRead: number;
-  ayatGoal: number;
-  surahRead: number;
-  surahGoal: number;
-  halamanRead: number;
-  halamanGoal: number;
-  menitRead: number;
-  menitGoal: number;
-  streak: number;
-}
-
 interface RecentReadState {
   id: number;
   name: string;
@@ -32,24 +20,21 @@ interface RecentReadState {
   time: string;
 }
 
-const fallbackProgress: DailyProgressState = {
-  ayatRead: 0,
-  ayatGoal: 2500,
-  surahRead: 0,
-  surahGoal: 150,
-  halamanRead: 0,
-  halamanGoal: 275,
-  menitRead: 0,
-  menitGoal: 70,
-  streak: 0,
-};
-
 function formatTime(value: string) {
   const date = new Date(value);
   return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 }
 
-function getWeeklyDays(weekLogs: any[], goals: any) {
+interface WeekLogEntry {
+  date: string;
+  ayat_read?: number | null;
+}
+
+interface UserGoals {
+  ayat_goal?: number | null;
+}
+
+function getWeeklyDays(weekLogs: WeekLogEntry[], goals: UserGoals | null) {
   const dayNames = ["S", "M", "T", "W", "T", "F", "S"];
   const items: WeekDayItem[] = [];
   const today = new Date();
@@ -96,7 +81,6 @@ function getWeeklyDays(weekLogs: any[], goals: any) {
 }
 
 export default function HomePage() {
-  const [progress, setProgress] = useState<DailyProgressState>(fallbackProgress);
   const [weekDays, setWeekDays] = useState<WeekDayItem[]>([]);
   const [recentlyRead, setRecentlyRead] = useState<RecentReadState[]>([]);
 
@@ -121,18 +105,11 @@ export default function HomePage() {
       weekStart.setDate(today.getDate() - 6);
       const weekStartIso = `${weekStart.getFullYear()}-${`${weekStart.getMonth() + 1}`.padStart(2, "0")}-${`${weekStart.getDate()}`.padStart(2, "0")}`;
 
-      const [goalsResult, streakResult, todayLogResult, weekLogsResult, progressResult, surahs] = await Promise.all([
+      const [goalsResult, weekLogsResult, progressResult, surahs] = await Promise.all([
         supabase.from("user_goals").select("ayat_goal, surah_goal, halaman_goal, menit_goal").eq("id", user.id).maybeSingle(),
-        supabase.from("streaks").select("current_streak").eq("user_id", user.id).maybeSingle(),
         supabase
           .from("daily_logs")
-          .select("ayat_read, surah_read, halaman_read, minutes_read")
-          .eq("user_id", user.id)
-          .eq("date", todayIso)
-          .maybeSingle(),
-        supabase
-          .from("daily_logs")
-          .select("date")
+          .select("date, ayat_read")
           .eq("user_id", user.id)
           .gte("date", weekStartIso)
           .lte("date", todayIso),
@@ -146,22 +123,8 @@ export default function HomePage() {
       ]);
 
       const goals = goalsResult.data;
-      const streak = streakResult.data;
-      const todayLog = todayLogResult.data;
       const weekLogs = weekLogsResult.data ?? [];
       const recentRows = progressResult.data ?? [];
-
-      setProgress({
-        ayatRead: todayLog?.ayat_read ?? 0,
-        ayatGoal: goals?.ayat_goal ?? 2500,
-        surahRead: todayLog?.surah_read ?? 0,
-        surahGoal: goals?.surah_goal ?? 150,
-        halamanRead: todayLog?.halaman_read ?? 0,
-        halamanGoal: goals?.halaman_goal ?? 275,
-        menitRead: todayLog?.minutes_read ?? 0,
-        menitGoal: goals?.menit_goal ?? 70,
-        streak: streak?.current_streak ?? 0,
-      });
 
       setWeekDays(getWeeklyDays(weekLogs, goals));
 
