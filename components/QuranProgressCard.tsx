@@ -15,8 +15,6 @@ export default function QuranProgressCard({
   surahName = "Surah Al-Fatihah",
   juz = 1,
   progressPercentage = 0,
-  lastReadAyat = 0,
-  totalAyat = 7,
 }: QuranProgressCardProps) {
   return (
     <div className="bg-deen-bg-light rounded-[20px] p-4 border border-deen-main/10">

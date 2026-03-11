@@ -19,6 +19,8 @@ import { estimateTokens } from "@/lib/chat";
 import type { ChatMessage, Conversation, ChatApiRequest } from "@/lib/chat";
 import type { Database } from "@/lib/supabase/database";
 
+export const dynamic = "force-dynamic";
+
 // ─── Local DB row types ───────────────────────────────────────────────────────
 
 type ConversationRow = Database["public"]["Tables"]["chat_conversations"]["Row"];
