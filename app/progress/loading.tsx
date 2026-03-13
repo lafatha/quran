@@ -1,13 +1,20 @@
 export default function ProgressLoading() {
   return (
-    <div className="min-h-screen bg-background pb-24 px-4 pt-6">
-      <div className="h-8 w-28 rounded-lg bg-gray-200 animate-pulse" />
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="h-36 rounded-2xl bg-white animate-pulse" />
-        <div className="h-36 rounded-2xl bg-white animate-pulse" />
+    <div className="min-h-screen bg-[linear-gradient(180deg,#eaf5f0_0%,#f4f9f6_30%,#ffffff_100%)] pb-28 px-4 pt-6">
+      {/* Header */}
+      <div className="h-9 w-28 rounded-xl bg-emerald-100/80 animate-pulse mb-5" />
+      {/* Stat cards */}
+      <div className="h-4 w-24 rounded-full bg-gray-200 animate-pulse mb-3" />
+      <div className="flex gap-3 mb-4">
+        <div className="flex-1 h-36 rounded-[28px] bg-white animate-pulse" />
+        <div className="w-[120px] h-36 rounded-[28px] bg-white animate-pulse" />
       </div>
-      <div className="mt-4 h-64 rounded-2xl bg-white animate-pulse" />
-      <div className="mt-4 h-28 rounded-2xl bg-white animate-pulse" />
+      {/* Annual progress */}
+      <div className="h-4 w-28 rounded-full bg-gray-200 animate-pulse mb-3" />
+      <div className="h-28 rounded-[28px] bg-white animate-pulse mb-4" />
+      {/* Chart */}
+      <div className="h-4 w-24 rounded-full bg-gray-200 animate-pulse mb-3" />
+      <div className="h-64 rounded-[28px] bg-white animate-pulse" />
     </div>
   );
 }

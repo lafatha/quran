@@ -159,6 +159,84 @@ export interface Database {
         };
         Relationships: [];
       };
+      reading_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          surah_id: number;
+          session_date: string;
+          from_ayat: number;
+          to_ayat: number;
+          verses_read: number;
+          pages_read: number;
+          minutes_read: number;
+          source: string;
+          idempotency_key: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          surah_id: number;
+          session_date?: string;
+          from_ayat?: number;
+          to_ayat: number;
+          verses_read?: number;
+          pages_read?: number;
+          minutes_read?: number;
+          source?: string;
+          idempotency_key?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          surah_id?: number;
+          session_date?: string;
+          from_ayat?: number;
+          to_ayat?: number;
+          verses_read?: number;
+          pages_read?: number;
+          minutes_read?: number;
+          source?: string;
+          idempotency_key?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      reading_state: {
+        Row: {
+          id: string;
+          user_id: string;
+          surah_id: number;
+          last_ayat_read: number;
+          max_ayat_read: number;
+          is_completed: boolean;
+          completed_at: string | null;
+          last_read_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          surah_id: number;
+          last_ayat_read?: number;
+          max_ayat_read?: number;
+          is_completed?: boolean;
+          completed_at?: string | null;
+          last_read_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          surah_id?: number;
+          last_ayat_read?: number;
+          max_ayat_read?: number;
+          is_completed?: boolean;
+          completed_at?: string | null;
+          last_read_at?: string;
+        };
+        Relationships: [];
+      };
       reading_progress: {
         Row: {
           completed_at: string | null;
@@ -299,7 +377,20 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      track_reading_session: {
+        Args: {
+          p_user_id: string;
+          p_surah_id: number;
+          p_from_ayat: number;
+          p_to_ayat: number;
+          p_verses_read: number;
+          p_pages_read: number;
+          p_minutes_read: number;
+          p_source?: string;
+          p_idempotency_key?: string | null;
+        };
+        Returns: void;
+      };
     };
     Enums: {
       [_ in never]: never;

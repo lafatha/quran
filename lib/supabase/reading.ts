@@ -8,101 +8,23 @@ interface MarkReadInput {
   totalVerses: number;
 }
 
-function getTodayDateString() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = `${now.getMonth() + 1}`.padStart(2, "0");
-  const day = `${now.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function getYesterdayDateString() {
-  const now = new Date();
-  now.setDate(now.getDate() - 1);
-  const year = now.getFullYear();
-  const month = `${now.getMonth() + 1}`.padStart(2, "0");
-  const day = `${now.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
 export async function markSurahAsRead(
   supabase: SupabaseClient<Database>,
   input: MarkReadInput,
 ) {
-  const today = getTodayDateString();
+  const idempotencyKey = `${input.userId}:${input.surahId}:${new Date().toISOString().slice(0, 10)}:manual_complete`;
 
-  await supabase.from("reading_progress").upsert(
-    {
-      user_id: input.userId,
-      surah_id: input.surahId,
-      is_completed: true,
-      last_ayat_read: input.totalVerses,
-      completed_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,surah_id" },
-  );
-
-  const { data: todayLog } = await supabase
-    .from("daily_logs")
-    .select("id, ayat_read, surah_read, halaman_read, minutes_read")
-    .eq("user_id", input.userId)
-    .eq("date", today)
-    .maybeSingle();
-
-  if (todayLog) {
-    await supabase
-      .from("daily_logs")
-      .update({
-        ayat_read: todayLog.ayat_read + input.totalVerses,
-        surah_read: todayLog.surah_read + 1,
-        halaman_read: todayLog.halaman_read + getSurahPages(input.totalVerses),
-        minutes_read: todayLog.minutes_read + getSurahMinutes(input.totalVerses),
-      })
-      .eq("id", todayLog.id);
-  } else {
-    await supabase.from("daily_logs").insert({
-      user_id: input.userId,
-      date: today,
-      ayat_read: input.totalVerses,
-      surah_read: 1,
-      halaman_read: getSurahPages(input.totalVerses),
-      minutes_read: getSurahMinutes(input.totalVerses),
-    });
-  }
-
-  const { data: streak } = await supabase
-    .from("streaks")
-    .select("id, current_streak, longest_streak, last_read_date")
-    .eq("user_id", input.userId)
-    .maybeSingle();
-
-  const yesterday = getYesterdayDateString();
-
-  if (!streak) {
-    await supabase.from("streaks").insert({
-      user_id: input.userId,
-      current_streak: 1,
-      longest_streak: 1,
-      last_read_date: today,
-    });
-    return;
-  }
-
-  if (streak.last_read_date === today) {
-    return;
-  }
-
-  const currentStreak = streak.last_read_date === yesterday ? streak.current_streak + 1 : 1;
-  const longestStreak = Math.max(streak.longest_streak, currentStreak);
-
-  await supabase
-    .from("streaks")
-    .update({
-      current_streak: currentStreak,
-      longest_streak: longestStreak,
-      last_read_date: today,
-    })
-    .eq("id", streak.id);
+  await supabase.rpc("track_reading_session", {
+    p_user_id: input.userId,
+    p_surah_id: input.surahId,
+    p_from_ayat: 1,
+    p_to_ayat: input.totalVerses,
+    p_verses_read: input.totalVerses,
+    p_pages_read: getSurahPages(input.totalVerses),
+    p_minutes_read: getSurahMinutes(input.totalVerses),
+    p_source: "manual_complete",
+    p_idempotency_key: idempotencyKey,
+  });
 }
 
 export async function markSurahAsUnread(
@@ -110,6 +32,19 @@ export async function markSurahAsUnread(
   userId: string,
   surahId: number,
 ) {
+  // Reset reading_state completion status for this surah.
+  // We deliberately do NOT touch daily_logs or streaks — those are aggregates
+  // of recorded sessions and should remain historically accurate.
+  await supabase
+    .from("reading_state")
+    .update({
+      is_completed: false,
+      completed_at: null,
+    })
+    .eq("user_id", userId)
+    .eq("surah_id", surahId);
+
+  // Also reset legacy reading_progress for backwards-compat with existing queries
   await supabase
     .from("reading_progress")
     .update({

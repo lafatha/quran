@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import NavWrapper from "@/components/NavWrapper";
+import PageTransition from "@/components/PageTransition";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -29,7 +30,7 @@ export default function RootLayout({
     <html lang="id">
       <body className={`${geistSans.variable} font-[family-name:var(--font-geist-sans)] antialiased bg-gray-100`}>
         <div className="max-w-[390px] mx-auto min-h-screen bg-background relative overflow-x-hidden">
-          {children}
+          <PageTransition>{children}</PageTransition>
           <NavWrapper />
         </div>
       </body>

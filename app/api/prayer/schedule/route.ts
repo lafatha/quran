@@ -73,6 +73,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       data: result.data,
+    }, {
+      headers: { "Cache-Control": "public, max-age=3600, stale-while-revalidate=600" },
     });
   } catch {
     return NextResponse.json(

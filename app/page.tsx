@@ -136,7 +136,10 @@ function formatTime(value: string) {
   });
 }
 
-function getWeeklyDays(completedDates: Set<string>) {
+function getWeeklyDays(
+  dailyProgressMap: Map<string, number>,
+  ayatGoal: number,
+) {
   const dayNames = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
   const items: WeekDayItem[] = [];
   const today = new Date();
@@ -146,18 +149,24 @@ function getWeeklyDays(completedDates: Set<string>) {
     target.setDate(today.getDate() - index);
     const isoDate = getDateKey(target);
     const todayIso = getDateKey(today);
+    const ayatRead = dailyProgressMap.get(isoDate) ?? 0;
+    const progress =
+      ayatGoal > 0 ? Math.min(100, Math.round((ayatRead / ayatGoal) * 100)) : 0;
 
     const status: WeekDayItem["status"] =
       isoDate === todayIso
         ? "today"
-        : completedDates.has(isoDate)
+        : progress >= 100
           ? "completed"
-          : "default";
+          : ayatRead > 0
+            ? "today"
+            : "default";
 
     items.push({
       day: dayNames[target.getDay()],
       date: target.getDate(),
       status,
+      progress,
     });
   }
 
@@ -296,6 +305,23 @@ export default function HomePage() {
       return;
     }
 
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    const cacheKey = `prayer_schedule:${location.province}:${location.city}:${year}-${month}`;
+
+    // Serve from localStorage instantly if available
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached) as PrayerMonthSchedule;
+        setPrayerMonthSchedule(parsed);
+        applyPrayerSchedule(date, parsed);
+        return;
+      }
+    } catch {
+      // ignore parse errors
+    }
+
     setPrayerLoading(true);
 
     try {
@@ -307,8 +333,8 @@ export default function HomePage() {
         body: JSON.stringify({
           province: location.province,
           city: location.city,
-          month: date.getMonth() + 1,
-          year: date.getFullYear(),
+          month,
+          year,
         }),
       });
       const result = (await response.json()) as ScheduleResponse;
@@ -319,6 +345,12 @@ export default function HomePage() {
         setPrayerState(EMPTY_PRAYER_STATE);
         setPrayerError(result.error ?? "Gagal memuat jadwal sholat.");
         return;
+      }
+
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(result.data));
+      } catch {
+        // ignore storage quota errors
       }
 
       setPrayerMonthSchedule(result.data);
@@ -334,6 +366,7 @@ export default function HomePage() {
   }, [applyPrayerSchedule]);
 
   useEffect(() => {
+    // Kick off provinces fetch (for modal form) — fire and forget, non-blocking
     fetchProvinces();
 
     const supabase = createClient();
@@ -351,6 +384,7 @@ export default function HomePage() {
       const weekStart = new Date(today);
       weekStart.setDate(today.getDate() - 6);
 
+      // Run ALL queries in parallel: Supabase + prayer settings together
       const [
         goalsResult,
         streakResult,
@@ -378,15 +412,15 @@ export default function HomePage() {
           .maybeSingle(),
         supabase
           .from("daily_logs")
-          .select("date")
+          .select("date, ayat_read")
           .eq("user_id", user.id)
           .gte("date", getDateKey(weekStart))
           .lte("date", todayIso),
         supabase
-          .from("reading_progress")
-          .select("surah_id, last_ayat_read, updated_at")
+          .from("reading_state")
+          .select("surah_id, last_ayat_read, last_read_at")
           .eq("user_id", user.id)
-          .order("updated_at", { ascending: false })
+          .order("last_read_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
         supabase
@@ -416,7 +450,11 @@ export default function HomePage() {
         streak: streak?.current_streak ?? 0,
       });
 
-      setWeekDays(getWeeklyDays(new Set(weekLogs.map((item) => item.date))));
+      const resolvedAyatGoal = goals?.ayat_goal ?? 2500;
+      const weekProgressMap = new Map<string, number>(
+        weekLogs.map((item) => [item.date, item.ayat_read]),
+      );
+      setWeekDays(getWeeklyDays(weekProgressMap, resolvedAyatGoal));
 
       if (continueRow) {
         const surah = surahs.find((item) => item.id === continueRow.surah_id);
@@ -425,7 +463,7 @@ export default function HomePage() {
           name: surah?.transliteration ?? `Surah ${continueRow.surah_id}`,
           ayatCount: surah?.total_verses ?? 0,
           lastAyatRead: continueRow.last_ayat_read ?? 0,
-          time: formatTime(continueRow.updated_at),
+          time: formatTime(continueRow.last_read_at),
         });
       }
 
@@ -436,22 +474,14 @@ export default function HomePage() {
 
       setPrayerLocation(nextLocation);
 
-      if (nextLocation.province) {
-        const nextCities = await fetchCities(nextLocation.province);
-
-        if (!nextCities.includes(nextLocation.city)) {
-          setShowLocationModal(true);
-          setPrayerError("Lokasi kota tidak lagi cocok dengan data API. Silakan pilih ulang.");
-          return;
-        }
-      }
-
       if (!nextLocation.province || !nextLocation.city) {
         setShowLocationModal(true);
         setPrayerError("Pilih lokasi terlebih dahulu agar jadwal sholat sesuai kotamu.");
         return;
       }
 
+      // Load prayer schedule immediately — no cities round-trip needed on initial load
+      // loadPrayerSchedule serves from localStorage cache if available (instant)
       await loadPrayerSchedule(nextLocation, today);
     });
   }, [loadPrayerSchedule]);
