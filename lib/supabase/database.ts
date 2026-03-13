@@ -262,6 +262,8 @@ export interface Database {
           dark_mode: boolean;
           id: string;
           language: string;
+          prayer_city: string | null;
+          prayer_province: string | null;
           prayer_reminder: boolean;
           reading_notification: boolean;
           updated_at: string;
@@ -272,6 +274,8 @@ export interface Database {
           dark_mode?: boolean;
           id: string;
           language?: string;
+          prayer_city?: string | null;
+          prayer_province?: string | null;
           prayer_reminder?: boolean;
           reading_notification?: boolean;
           updated_at?: string;
@@ -282,6 +286,8 @@ export interface Database {
           dark_mode?: boolean;
           id?: string;
           language?: string;
+          prayer_city?: string | null;
+          prayer_province?: string | null;
           prayer_reminder?: boolean;
           reading_notification?: boolean;
           updated_at?: string;
