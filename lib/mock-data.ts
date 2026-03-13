@@ -1,5 +1,5 @@
 // ============================================
-// MOCK DATA — Quran AI (Cal AI Clone)
+// MOCK DATA — Mufasir
 // ============================================
 
 export const weekDays = [

@@ -11,7 +11,7 @@ const geistSans = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Quran AI",
+  title: "Mufasir",
   description: "Al-Quran Daily Reading Tracker with AI",
 };
 

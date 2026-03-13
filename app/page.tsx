@@ -587,7 +587,7 @@ export default function HomePage() {
         <div className="px-5 pt-6 pb-2">
           <div className="flex items-center justify-between gap-3">
             <h1 className="text-[1.9rem] font-bold tracking-tight leading-none text-emerald-950">
-              Quran AI
+              Mufasir
             </h1>
             <div className="flex items-center gap-1.5 rounded-2xl bg-gradient-to-br from-emerald-700 to-teal-600 px-3.5 py-2.5 shadow-lg shadow-emerald-900/25">
               <svg

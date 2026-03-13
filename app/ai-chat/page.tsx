@@ -560,7 +560,7 @@ function Sidebar({
             {/* Bottom brand footer */}
             <div className="relative z-10 px-4 py-4 border-t border-white/8">
               <p className="text-[10px] text-emerald-600/50 text-center font-medium">
-                Quran AI · Mufassir v1
+                Mufasir · Mufassir v1
               </p>
             </div>
           </div>
@@ -642,7 +642,7 @@ function InputBar({ value, isLoading, onChange, onSubmit }: InputBarProps) {
         </button>
       </div>
       <p className="text-center text-[10px] text-gray-400/70 mt-2 font-medium">
-        Quran AI · Mufassir dapat membuat kesalahan
+        Mufasir · Mufassir dapat membuat kesalahan
       </p>
     </div>
   );

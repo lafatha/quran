@@ -142,7 +142,7 @@ export default function LoginPage() {
           <QuranLogo />
         </div>
         <h1 className="text-[2rem] font-bold tracking-tight leading-none text-white">
-          Quran AI
+          Mufasir
         </h1>
         <p className="mt-2.5 text-[14px] leading-relaxed text-emerald-200/80">
           Tracker bacaan harian & panduan Islam
