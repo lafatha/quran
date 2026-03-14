@@ -569,7 +569,6 @@ export default function HomePage() {
     }
   }
 
-  const ayatProgress = getProgressWidth(progress.ayatRead, progress.ayatGoal);
   const continueProgress = continueRead
     ? getProgressWidth(continueRead.lastAyatRead, continueRead.ayatCount)
     : 0;
@@ -647,14 +646,14 @@ export default function HomePage() {
             <div className="relative z-10 mb-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 backdrop-blur-sm">
                 <MapPin className="h-3.5 w-3.5 text-white/80" />
-                <p className="text-[11px] font-semibold text-white/90">
+                <p className="text-[10px] font-semibold text-white/90">
                   {prayerLocationLabel}
                 </p>
               </div>
               {!showLocationModal && (
                 <Link
                   href="/settings"
-                  className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75"
+                  className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75"
                 >
                   Ubah
                 </Link>
@@ -716,19 +715,19 @@ export default function HomePage() {
               <div>
                 <div className="mb-1 flex items-center gap-1.5">
                   <Clock3 className="h-3.5 w-3.5 text-emerald-400" />
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-400">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-400">
                     Salat Berikutnya
                   </p>
                 </div>
-                <p className="text-[2rem] font-bold tracking-tight leading-none text-white">
+                <p className="text-[1.8rem] font-bold tracking-tight leading-none text-white">
                   {prayerLoading ? "Memuat" : prayerState.nextPrayerName}
                 </p>
-                <p className="mt-1.5 text-sm text-emerald-300/80">
+                <p className="mt-1.5 text-[13px] text-emerald-300/80">
                   {prayerError ?? prayerState.countdown}
                 </p>
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-[2.6rem] font-bold tracking-tight leading-none text-white">
+                <p className="text-[2.3rem] font-bold tracking-tight leading-none text-white">
                   {prayerLoading ? "--:--" : prayerState.nextPrayerTime}
                 </p>
                 <p className="mt-1 text-[11px] text-emerald-300/80">
@@ -744,113 +743,30 @@ export default function HomePage() {
           <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
             Menu Utama
           </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-4 gap-2.5">
             {shortcuts.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`group relative overflow-hidden rounded-[26px] bg-gradient-to-br ${item.gradient} p-5 shadow-lg ${item.shadow} transition-transform active:scale-[0.97]`}
+                  className={`group relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br ${item.gradient} p-2.5 shadow-lg ${item.shadow} transition-transform active:scale-[0.97]`}
                 >
                   {/* Card decoration */}
-                  <div className="pointer-events-none absolute -bottom-5 -right-5 h-28 w-28 rounded-full bg-white/8" />
-                  <div className="pointer-events-none absolute bottom-6 right-3 h-8 w-8 rounded-full bg-white/5" />
+                  <div className="pointer-events-none absolute -bottom-4 -right-4 h-20 w-20 rounded-full bg-white/8" />
+                  <div className="pointer-events-none absolute bottom-4 right-3 h-7 w-7 rounded-full bg-white/5" />
 
                   <div className="relative z-10">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-white/18 backdrop-blur-sm">
-                      <Icon className="h-5 w-5 text-white" strokeWidth={2} />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-white/18 backdrop-blur-sm">
+                      <Icon className="h-4 w-4 text-white" strokeWidth={2} />
                     </div>
-                    <p className="mt-[18px] text-[15px] font-bold tracking-tight leading-tight text-white">
+                    <p className="mt-2 text-[12px] font-bold tracking-tight leading-tight text-white text-center">
                       {item.label}
-                    </p>
-                    <p className="mt-0.5 text-[12px] text-white/65">
-                      {item.caption}
                     </p>
                   </div>
                 </Link>
               );
             })}
-          </div>
-        </div>
-
-        {/* Progress Today */}
-        <div className="mt-5 px-4">
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
-            Progress Hari Ini
-          </p>
-          <div className="rounded-[28px] border border-emerald-100/80 bg-white p-5 shadow-sm shadow-emerald-950/5">
-            {/* Top row */}
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[2.4rem] font-bold tracking-tight leading-none text-gray-950">
-                  {progress.ayatRead}
-                  <span className="ml-1.5 text-base font-semibold text-gray-300">
-                    ayat
-                  </span>
-                </p>
-                <p className="mt-1.5 text-[13px] text-gray-400">
-                  dari target{" "}
-                  <span className="font-semibold text-gray-600">
-                    {progress.ayatGoal}
-                  </span>{" "}
-                  ayat
-                </p>
-              </div>
-              <div className="shrink-0 rounded-2xl border border-emerald-100 bg-emerald-50 px-3.5 py-2.5 text-center">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600/60">
-                  Selesai
-                </p>
-                <p className="mt-0.5 text-2xl font-bold leading-tight text-emerald-700">
-                  {ayatProgress}%
-                </p>
-              </div>
-            </div>
-
-            {/* Progress bar */}
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-600 to-teal-400 transition-all duration-700"
-                style={{ width: `${ayatProgress}%` }}
-              />
-            </div>
-
-            {/* Stats */}
-            <div className="mt-4 grid grid-cols-3 divide-x divide-gray-100">
-              <div className="pr-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  Surah
-                </p>
-                <p className="mt-1 text-[1.4rem] font-bold leading-none text-gray-900">
-                  {progress.surahRead}
-                </p>
-                <p className="mt-0.5 text-[11px] text-gray-400">
-                  /{progress.surahGoal}
-                </p>
-              </div>
-              <div className="px-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  Halaman
-                </p>
-                <p className="mt-1 text-[1.4rem] font-bold leading-none text-gray-900">
-                  {progress.halamanRead}
-                </p>
-                <p className="mt-0.5 text-[11px] text-gray-400">
-                  /{progress.halamanGoal}
-                </p>
-              </div>
-              <div className="pl-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  Menit
-                </p>
-                <p className="mt-1 text-[1.4rem] font-bold leading-none text-gray-900">
-                  {progress.menitRead}
-                </p>
-                <p className="mt-0.5 text-[11px] text-gray-400">
-                  /{progress.menitGoal}
-                </p>
-              </div>
-            </div>
           </div>
         </div>
 
