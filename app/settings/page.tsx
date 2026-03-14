@@ -10,6 +10,7 @@ import {
   Globe,
   LogOut,
   Shield,
+  Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import PrayerLocationForm from "@/components/PrayerLocationForm";
@@ -76,6 +77,11 @@ export default function SettingsPage() {
   const [savingLocation, setSavingLocation] = useState(false);
   const [locationMessage, setLocationMessage] = useState<string | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [isPremium, setIsPremium] = useState(false);
+  const [premiumLoading, setPremiumLoading] = useState(true);
+  const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
+  const [currentInvoiceId, setCurrentInvoiceId] = useState<string | null>(null);
+  const [isCheckingInvoice, setIsCheckingInvoice] = useState(false);
 
   async function fetchProvinces() {
     setProvinceLoading(true);
@@ -155,7 +161,7 @@ export default function SettingsPage() {
 
       setUserId(user.id);
 
-      const [profileResult, settingsResult] = await Promise.all([
+      const [profileResult, settingsResult, premiumResult] = await Promise.all([
         supabase
           .from("profiles")
           .select("name, email, initials")
@@ -165,6 +171,11 @@ export default function SettingsPage() {
           .from("user_settings")
           .select("prayer_reminder, reading_notification, language, daily_target_pages, prayer_province, prayer_city")
           .eq("id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("premium_subscriptions")
+          .select("is_premium")
+          .eq("user_id", user.id)
           .maybeSingle(),
       ]);
 
@@ -192,6 +203,13 @@ export default function SettingsPage() {
           }
         }
       }
+
+      if (premiumResult.data) {
+        setIsPremium(Boolean(premiumResult.data.is_premium));
+      } else {
+        setIsPremium(false);
+      }
+      setPremiumLoading(false);
     });
   }, []);
 
@@ -230,6 +248,82 @@ export default function SettingsPage() {
     setSettings((prev) => ({ ...prev, prayerCity: value }));
   }
 
+  async function handleCreateInvoice() {
+    if (isCreatingInvoice) return;
+    setIsCreatingInvoice(true);
+    const supabaseAuth = createClient();
+    try {
+      const { data: { user } } = await supabaseAuth.auth.getUser();
+      if (!user?.id) {
+        setIsCreatingInvoice(false);
+        return;
+      }
+      const response = await fetch("/api/billing/mayar/create-invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      if (!response.ok) {
+        setIsCreatingInvoice(false);
+        return;
+      }
+      const data = (await response.json()) as {
+        invoiceId: string;
+        paymentUrl: string;
+      };
+      setCurrentInvoiceId(data.invoiceId);
+      if (data.paymentUrl) {
+        window.open(data.paymentUrl, "_blank");
+      }
+    } finally {
+      setIsCreatingInvoice(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!currentInvoiceId || isPremium) return;
+    let cancelled = false;
+
+    const poll = async () => {
+      if (cancelled) return;
+      setIsCheckingInvoice(true);
+      const supabaseAuth = createClient();
+      try {
+        const { data: { user } } = await supabaseAuth.auth.getUser();
+        if (!user?.id) return;
+        const response = await fetch("/api/billing/mayar/check-invoice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            invoiceId: currentInvoiceId,
+            userId: user.id,
+          }),
+        });
+        if (!response.ok) {
+          return;
+        }
+        const data = (await response.json()) as {
+          status?: string;
+          isPremium?: boolean;
+        };
+        if (data.isPremium) {
+          setIsPremium(true);
+          setIsCheckingInvoice(false);
+          return;
+        }
+      } finally {
+        setIsCheckingInvoice(false);
+      }
+      setTimeout(poll, 5000);
+    };
+
+    poll();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentInvoiceId, isPremium]);
+
   async function signOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -261,6 +355,74 @@ export default function SettingsPage() {
             <p className="mt-0.5 truncate text-[13px] text-gray-400">{email}</p>
           </div>
           <ChevronRight className="h-5 w-5 shrink-0 text-gray-300" />
+        </div>
+      </div>
+
+      {/* Mufassir AI */}
+      <div className="mt-5 px-4">
+        <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
+          Mufassir AI
+        </p>
+        <div className="flex items-center justify-between rounded-[28px] border border-emerald-100/80 bg-white p-5 shadow-sm shadow-emerald-950/5 gap-4">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-50">
+              <Sparkles className="h-4 w-4 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-[15px] font-bold tracking-tight text-gray-950">
+                Akses Premium
+              </p>
+              {premiumLoading ? (
+                <p className="mt-1 text-[12px] text-gray-400">
+                  Memeriksa status paket…
+                </p>
+              ) : isPremium ? (
+                <p className="mt-1 text-[12px] text-emerald-700">
+                  Kamu sudah berlangganan Mufassir Premium. Tanya AI tanpa
+                  batas setiap hari.
+                </p>
+              ) : (
+                <p className="mt-1 text-[12px] text-gray-500">
+                  Paket gratis: 10 pertanyaan per hari di Mufassir AI. Upgrade
+                  ke Pro untuk akses tanpa batas.
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            {!premiumLoading && (
+              <span
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                  isPremium
+                    ? "bg-emerald-100 text-emerald-800"
+                    : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {isPremium ? "Premium aktif" : "Paket gratis"}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleCreateInvoice}
+              disabled={isPremium || isCreatingInvoice}
+              className={`mt-1 rounded-2xl px-3 py-1.5 text-[11px] font-semibold transition-colors ${
+                isPremium
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              }`}
+            >
+              {isPremium
+                ? "Sudah Premium"
+                : isCreatingInvoice
+                  ? "Membuat invoice…"
+                  : "Upgrade ke Pro (Rp20.000)"}
+            </button>
+            {isCheckingInvoice && !isPremium && (
+              <p className="mt-0.5 text-[10px] text-gray-400">
+                Menunggu konfirmasi pembayaran…
+              </p>
+            )}
+          </div>
         </div>
       </div>
 

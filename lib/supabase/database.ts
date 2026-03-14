@@ -372,6 +372,72 @@ export interface Database {
         };
         Relationships: [];
       };
+      ai_prompt_usage: {
+        Row: {
+          id: string;
+          user_id: string;
+          usage_date: string;
+          prompt_count: number;
+          upgrade_declined: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          usage_date: string;
+          prompt_count?: number;
+          upgrade_declined?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          usage_date?: string;
+          prompt_count?: number;
+          upgrade_declined?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      premium_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          is_premium: boolean;
+          activated_at: string | null;
+          provider: string;
+          mayar_invoice_id: string | null;
+          mayar_status: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          is_premium?: boolean;
+          activated_at?: string | null;
+          provider?: string;
+          mayar_invoice_id?: string | null;
+          mayar_status?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          is_premium?: boolean;
+          activated_at?: string | null;
+          provider?: string;
+          mayar_invoice_id?: string | null;
+          mayar_status?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

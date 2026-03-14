@@ -26,6 +26,9 @@ export const dynamic = "force-dynamic";
 type ConversationRow =
   Database["public"]["Tables"]["chat_conversations"]["Row"];
 type MessageRow = Database["public"]["Tables"]["chat_messages"]["Row"];
+type PremiumSubscriptionRow =
+  Database["public"]["Tables"]["premium_subscriptions"]["Row"];
+type AiPromptUsageRow = Database["public"]["Tables"]["ai_prompt_usage"]["Row"];
 
 function isTemporaryMessage(message: ChatMessage) {
   return message.id.startsWith("tmp-");
@@ -655,6 +658,15 @@ export default function AIChatPage() {
 
   const [userId, setUserId] = useState<string | null>(null);
 
+  const [isPremium, setIsPremium] = useState(false);
+  const [promptCount, setPromptCount] = useState(0);
+  const [usageDate, setUsageDate] = useState<string | null>(null);
+  const [hasUpgradeDeclinedToday, setHasUpgradeDeclinedToday] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
+  const [currentInvoiceId, setCurrentInvoiceId] = useState<string | null>(null);
+  const [isCheckingInvoice, setIsCheckingInvoice] = useState(false);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<
@@ -681,10 +693,45 @@ export default function AIChatPage() {
 
   // ── Auth ───────────────────────────────────────────────────────────────────
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserId(data.user?.id ?? null);
+    supabase.auth.getUser().then(async ({ data }) => {
+      const id = data.user?.id ?? null;
+      setUserId(id);
+
+      if (!id) return;
+
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(
+        now.getMonth() + 1,
+      ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      setUsageDate(today);
+
+      const { data: subscription } = await supabase
+        .from("premium_subscriptions")
+        .select("is_premium")
+        .eq("user_id", id)
+        .maybeSingle();
+
+      if (subscription) {
+        setIsPremium((subscription as PremiumSubscriptionRow).is_premium);
+      }
+
+      const { data: usage } = await supabase
+        .from("ai_prompt_usage")
+        .select("prompt_count, usage_date, upgrade_declined")
+        .eq("user_id", id)
+        .eq("usage_date", today)
+        .maybeSingle();
+
+      if (usage) {
+        const row = usage as AiPromptUsageRow;
+        setPromptCount(row.prompt_count);
+        setHasUpgradeDeclinedToday(row.upgrade_declined);
+      } else {
+        setPromptCount(0);
+        setHasUpgradeDeclinedToday(false);
+      }
     });
-  }, [supabase.auth]);
+  }, [supabase.auth, supabase]);
 
   // ── Fetch sidebar conversation list ───────────────────────────────────────
   const fetchConversations = useCallback(() => {
@@ -824,6 +871,20 @@ export default function AIChatPage() {
     async (text: string) => {
       if (!text.trim() || isTyping) return;
 
+      if (!isPremium) {
+        if (usageDate === null) {
+          return;
+        }
+
+        if (promptCount >= 10) {
+          if (hasUpgradeDeclinedToday) {
+            return;
+          }
+          setIsUpgradeModalOpen(true);
+          return;
+        }
+      }
+
       const tempUserMsgId = `tmp-user-${Date.now()}`;
       const tempUserMsg: ChatMessage = {
         id: tempUserMsgId,
@@ -850,6 +911,25 @@ export default function AIChatPage() {
             );
           }
         });
+
+        if (!isPremium && usageDate) {
+          const newCount = promptCount + 1;
+          setPromptCount(newCount);
+          supabase
+            .from("ai_prompt_usage")
+            .upsert(
+              {
+                user_id: userId,
+                usage_date: usageDate,
+                prompt_count: newCount,
+                upgrade_declined: hasUpgradeDeclinedToday,
+              },
+              {
+                onConflict: "user_id,usage_date",
+              },
+            )
+            .then(() => undefined);
+        }
       }
 
       const tempAiMsgId = `tmp-ai-${Date.now()}`;
@@ -948,6 +1028,11 @@ export default function AIChatPage() {
       createConversation,
       persistMessage,
       touchConversation,
+      isPremium,
+      promptCount,
+      usageDate,
+      hasUpgradeDeclinedToday,
+      supabase,
     ],
   );
 
@@ -976,6 +1061,101 @@ export default function AIChatPage() {
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
+
+  const handleUpgradeDecline = useCallback(() => {
+    if (!userId || !usageDate) {
+      setIsUpgradeModalOpen(false);
+      return;
+    }
+    setHasUpgradeDeclinedToday(true);
+    supabase
+      .from("ai_prompt_usage")
+      .upsert(
+        {
+          user_id: userId,
+          usage_date: usageDate,
+          prompt_count,
+          upgrade_declined: true,
+        },
+        {
+          onConflict: "user_id,usage_date",
+        },
+      )
+      .then(() => undefined);
+    setIsUpgradeModalOpen(false);
+  }, [promptCount, supabase, usageDate, userId]);
+
+  const handleCreateInvoice = useCallback(async () => {
+    if (isCreatingInvoice) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) return;
+    setIsCreatingInvoice(true);
+    try {
+      const res = await fetch("/api/billing/mayar/create-invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      if (!res.ok) {
+        setIsCreatingInvoice(false);
+        return;
+      }
+      const data = (await res.json()) as {
+        invoiceId: string;
+        paymentUrl: string;
+      };
+      setCurrentInvoiceId(data.invoiceId);
+      if (data.paymentUrl) {
+        window.open(data.paymentUrl, "_blank");
+      }
+    } finally {
+      setIsCreatingInvoice(false);
+    }
+  }, [isCreatingInvoice, supabase]);
+
+  useEffect(() => {
+    if (!currentInvoiceId || isPremium) return;
+    let cancelled = false;
+
+    const poll = async () => {
+      if (cancelled) return;
+      setIsCheckingInvoice(true);
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser?.id) return;
+        const res = await fetch("/api/billing/mayar/check-invoice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            invoiceId: currentInvoiceId,
+            userId: currentUser.id,
+          }),
+        });
+        if (!res.ok) {
+          return;
+        }
+        const data = (await res.json()) as {
+          status?: string;
+          isPremium?: boolean;
+        };
+        if (data.isPremium) {
+          setIsPremium(true);
+          setIsUpgradeModalOpen(false);
+          setIsCheckingInvoice(false);
+          return;
+        }
+      } finally {
+        setIsCheckingInvoice(false);
+      }
+      setTimeout(poll, 5000);
+    };
+
+    poll();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentInvoiceId, isPremium]);
 
   return (
     <div className="h-[100dvh] max-h-[100dvh] bg-[linear-gradient(180deg,#eaf5f0_0%,#f4f9f6_30%,#ffffff_100%)] relative overflow-hidden">
@@ -1022,9 +1202,18 @@ export default function AIChatPage() {
             <span className="font-bold text-[15px] text-emerald-950 tracking-tight">
               Mufassir
             </span>
-            <span className="text-[9px] font-bold text-white bg-gradient-to-r from-emerald-700 to-teal-600 rounded-full px-2 py-0.5 leading-tight shadow-sm shadow-emerald-900/15">
-              AI
-            </span>
+            {isPremium ? (
+              <span className="text-[9px] font-bold text-white bg-emerald-700 rounded-full px-2 py-0.5 leading-tight shadow-sm shadow-emerald-900/15">
+                Tanpa batas
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[9px] font-bold text-emerald-800 bg-emerald-50 rounded-full px-2 py-0.5 leading-tight border border-emerald-200">
+                <span>AI</span>
+                <span className="text-[8px] font-semibold text-emerald-600">
+                  {promptCount}/10
+                </span>
+              </span>
+            )}
           </div>
 
           <Link
@@ -1061,6 +1250,29 @@ export default function AIChatPage() {
           </AnimatePresence>
         </div>
 
+        {!isPremium && promptCount >= 10 && (
+          <div className="px-4 pb-2">
+            <div className="mb-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 flex items-center justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-[11px] font-semibold text-amber-800">
+                  Batas harian tercapai
+                </p>
+                <p className="text-[11px] text-amber-900/80 mt-0.5">
+                  Upgrade ke premium (Rp20.000) untuk tanya Mufassir AI tanpa
+                  batas.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsUpgradeModalOpen(true)}
+                className="flex-shrink-0 text-[11px] font-semibold px-3 py-1.5 rounded-full bg-amber-600 text-white hover:bg-amber-700 transition-colors"
+              >
+                Upgrade
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Input bar */}
         <InputBar
           value={input}
@@ -1069,6 +1281,66 @@ export default function AIChatPage() {
           onSubmit={handleSubmit}
         />
       </motion.div>
+
+      <AnimatePresence>
+        {isUpgradeModalOpen && !isPremium && (
+          <motion.div
+            className="fixed inset-0 z-30 flex items-end justify-center bg-black/40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 40, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 260, damping: 26 }}
+              className="w-full max-w-sm mx-auto mb-6 rounded-3xl bg-white px  -4 py-4 shadow-xl"
+            >
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 w-8 h-8 rounded-2xl bg-amber-100 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-amber-700" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-900">
+                    Upgrade ke Mufassir Premium
+                  </p>
+                  <p className="mt-1 text-xs text-gray-600 leading-relaxed">
+                    Kamu sudah memakai 10 pertanyaan gratis hari ini. Dengan
+                    Rp20.000 sekali bayar, kamu bisa bertanya ke Mufassir AI
+                    tanpa batas setiap hari.
+                  </p>
+                  <div className="mt-3 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCreateInvoice}
+                      disabled={isCreatingInvoice}
+                      className="w-full rounded-2xl bg-emerald-600 text-white text-xs font-semibold py-2.5 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isCreatingInvoice
+                        ? "Membuat invoice…"
+                        : "Lanjutkan bayar Rp20.000"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleUpgradeDecline}
+                      disabled={isCheckingInvoice}
+                      className="w-full rounded-2xl border border-gray-200 text-xs font-semibold py-2.5 text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      Nanti saja
+                    </button>
+                    {isCheckingInvoice && (
+                      <p className="text-[10px] text-gray-500 text-center mt-1">
+                        Menunggu konfirmasi pembayaran…
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
