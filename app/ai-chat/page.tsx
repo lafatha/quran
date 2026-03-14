@@ -16,6 +16,10 @@ import {
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { estimateTokens } from "@/lib/chat";
+import { FREE_DAILY_LIMIT } from "@/lib/premium";
+import CreditBadge from "@/components/CreditBadge";
+import CreditBanner from "@/components/CreditBanner";
+import PremiumUpgradePopup from "@/components/PremiumUpgradePopup";
 import type { ChatMessage, Conversation, ChatApiRequest } from "@/lib/chat";
 import type { Database } from "@/lib/supabase/database";
 
@@ -668,6 +672,12 @@ export default function AIChatPage() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
+  const [isPremium, setIsPremium] = useState(false);
+  const [creditsUsed, setCreditsUsed] = useState(0);
+  const [creditsMax, setCreditsMax] = useState(FREE_DAILY_LIMIT);
+  const [showUpgradePopup, setShowUpgradePopup] = useState(false);
+  const [creditExhausted, setCreditExhausted] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollFrameRef = useRef<number | null>(null);
 
@@ -685,6 +695,33 @@ export default function AIChatPage() {
       setUserId(data.user?.id ?? null);
     });
   }, [supabase.auth]);
+
+  // ── Fetch premium status ───────────────────────────────────────────────────
+  const fetchPremiumStatus = useCallback(() => {
+    if (!userId) return;
+    fetch("/api/premium/status")
+      .then((res) => res.json())
+      .then((data: { isPremium: boolean; creditsUsed: number; creditsMax: number; creditsRemaining: number | null }) => {
+        setIsPremium(data.isPremium);
+        setCreditsUsed(data.creditsUsed);
+        setCreditsMax(data.creditsMax);
+        const exhausted = !data.isPremium && data.creditsRemaining === 0;
+        setCreditExhausted(exhausted);
+      })
+      .catch(() => {});
+  }, [userId]);
+
+  useEffect(() => {
+    fetchPremiumStatus();
+  }, [fetchPremiumStatus]);
+
+  // ── Check for post-payment redirect ────────────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("upgraded") === "true") {
+      window.history.replaceState({}, "", "/ai-chat");
+    }
+  }, []);
 
   // ── Fetch sidebar conversation list ───────────────────────────────────────
   const fetchConversations = useCallback(() => {
@@ -819,10 +856,32 @@ export default function AIChatPage() {
     [supabase, fetchConversations],
   );
 
+  // ── Handle premium upgrade ────────────────────────────────────────────────
+  const handleUpgrade = useCallback(async () => {
+    const res = await fetch("/api/premium/upgrade", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+
+    if (!res.ok) return;
+
+    const data = (await res.json()) as { paymentLink: string };
+    if (data.paymentLink) {
+      window.open(data.paymentLink, "_blank");
+    }
+    setShowUpgradePopup(false);
+  }, []);
+
   // ── Core send logic ───────────────────────────────────────────────────────
   const sendMessage = useCallback(
     async (text: string) => {
       if (!text.trim() || isTyping) return;
+
+      if (creditExhausted && !isPremium) {
+        setShowUpgradePopup(true);
+        return;
+      }
 
       const tempUserMsgId = `tmp-user-${Date.now()}`;
       const tempUserMsg: ChatMessage = {
@@ -873,8 +932,24 @@ export default function AIChatPage() {
           body: JSON.stringify(reqBody),
         });
 
+        if (res.status === 429) {
+          setCreditExhausted(true);
+          setShowUpgradePopup(true);
+          setMessages((prev) => prev.filter((m) => m.id !== tempUserMsgId));
+          setIsTyping(false);
+          return;
+        }
+
         if (!res.ok || !res.body) {
           throw new Error(`API error: ${res.status}`);
+        }
+
+        if (!isPremium) {
+          setCreditsUsed((prev) => prev + 1);
+          const newUsed = creditsUsed + 1;
+          if (newUsed >= creditsMax) {
+            setCreditExhausted(true);
+          }
         }
 
         setMessages((prev) => [...prev, tempAiMsg]);
@@ -945,6 +1020,10 @@ export default function AIChatPage() {
       isTyping,
       activeConversationId,
       userId,
+      isPremium,
+      creditExhausted,
+      creditsUsed,
+      creditsMax,
       createConversation,
       persistMessage,
       touchConversation,
@@ -1025,6 +1104,11 @@ export default function AIChatPage() {
             <span className="text-[9px] font-bold text-white bg-gradient-to-r from-emerald-700 to-teal-600 rounded-full px-2 py-0.5 leading-tight shadow-sm shadow-emerald-900/15">
               AI
             </span>
+            <CreditBadge
+              isPremium={isPremium}
+              creditsUsed={creditsUsed}
+              creditsMax={creditsMax}
+            />
           </div>
 
           <Link
@@ -1061,6 +1145,12 @@ export default function AIChatPage() {
           </AnimatePresence>
         </div>
 
+        {/* Credit exhausted banner */}
+        <CreditBanner
+          visible={creditExhausted && !isPremium}
+          onUpgradeClick={() => setShowUpgradePopup(true)}
+        />
+
         {/* Input bar */}
         <InputBar
           value={input}
@@ -1069,6 +1159,13 @@ export default function AIChatPage() {
           onSubmit={handleSubmit}
         />
       </motion.div>
+
+      {/* Premium upgrade popup */}
+      <PremiumUpgradePopup
+        isOpen={showUpgradePopup}
+        onClose={() => setShowUpgradePopup(false)}
+        onUpgrade={handleUpgrade}
+      />
     </div>
   );
 }

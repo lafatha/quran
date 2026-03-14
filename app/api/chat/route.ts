@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { formatRagContext } from "@/lib/chat";
+import { checkUserPremium, decrementAiCredit } from "@/lib/premium";
 import type { VectorResponse, ChatApiRequest } from "@/lib/chat";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -98,8 +99,24 @@ export async function POST(req: NextRequest): Promise<Response> {
     return NextResponse.json({ error: "Query is required" }, { status: 400 });
   }
 
-  // ── 1. Parallel: fetch RAG context + chat history ─────────────────────────
+  // ── 0. Credit gate — enforce daily limit for non-premium users ────────────
   const supabase = await createClient();
+
+  if (userId) {
+    const isPremium = await checkUserPremium(supabase, userId);
+
+    if (!isPremium) {
+      const credited = await decrementAiCredit(supabase, userId);
+      if (!credited) {
+        return NextResponse.json(
+          { error: "CREDIT_EXHAUSTED", message: "Kredit harian AI kamu sudah habis." },
+          { status: 429 },
+        );
+      }
+    }
+  }
+
+  // ── 1. Parallel: fetch RAG context + chat history ─────────────────────────
 
   const [ragContext, chatHistory] = await Promise.all([
     fetchVectorContext(query),

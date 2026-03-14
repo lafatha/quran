@@ -333,6 +333,63 @@ export interface Database {
         };
         Relationships: [];
       };
+      user_premium: {
+        Row: {
+          id: string;
+          user_id: string;
+          is_premium: boolean;
+          paid_at: string | null;
+          mayar_invoice_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          is_premium?: boolean;
+          paid_at?: string | null;
+          mayar_invoice_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          is_premium?: boolean;
+          paid_at?: string | null;
+          mayar_invoice_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      ai_credits: {
+        Row: {
+          id: string;
+          user_id: string;
+          date: string;
+          used_count: number;
+          max_count: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          date?: string;
+          used_count?: number;
+          max_count?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          date?: string;
+          used_count?: number;
+          max_count?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       user_settings: {
         Row: {
           created_at: string;
