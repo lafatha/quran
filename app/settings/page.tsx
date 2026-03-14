@@ -363,66 +363,54 @@ export default function SettingsPage() {
         <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
           Mufassir AI
         </p>
-        <div className="flex items-center justify-between rounded-[28px] border border-emerald-100/80 bg-white p-5 shadow-sm shadow-emerald-950/5 gap-4">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-50">
-              <Sparkles className="h-4 w-4 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-[15px] font-bold tracking-tight text-gray-950">
-                Akses Premium
-              </p>
-              {premiumLoading ? (
-                <p className="mt-1 text-[12px] text-gray-400">
-                  Memeriksa status paket…
-                </p>
-              ) : isPremium ? (
-                <p className="mt-1 text-[12px] text-emerald-700">
-                  Kamu sudah berlangganan Mufassir Premium. Tanya AI tanpa
-                  batas setiap hari.
-                </p>
-              ) : (
-                <p className="mt-1 text-[12px] text-gray-500">
-                  Paket gratis: 10 pertanyaan per hari di Mufassir AI. Upgrade
-                  ke Pro untuk akses tanpa batas.
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            {!premiumLoading && (
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+        <div className="rounded-[28px] border border-emerald-100/80 bg-white p-5 shadow-sm shadow-emerald-950/5 space-y-3">
+          <p className="text-[15px] font-bold tracking-tight text-gray-950">
+            Akses Premium
+          </p>
+          {premiumLoading ? (
+            <p className="text-[12px] text-gray-400">
+              Memeriksa status paket…
+            </p>
+          ) : (
+            <p className="text-[12px] text-gray-500">
+              Nikmati Mufassir AI dengan limit harian saat ini, atau upgrade
+              untuk pengalaman tanpa batas.
+            </p>
+          )}
+          {!premiumLoading && (
+            <div className="grid grid-cols-1 gap-2">
+              <div
+                className={`flex w-full items-center justify-center rounded-2xl px-4 py-2 text-[11px] font-semibold ${
                   isPremium
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-gray-100 text-gray-500"
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-100"
+                    : "bg-gray-50 text-gray-700 border border-gray-200"
                 }`}
               >
-                {isPremium ? "Premium aktif" : "Paket gratis"}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={handleCreateInvoice}
-              disabled={isPremium || isCreatingInvoice}
-              className={`mt-1 rounded-2xl px-3 py-1.5 text-[11px] font-semibold transition-colors ${
-                isPremium
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
-              }`}
-            >
-              {isPremium
-                ? "Sudah Premium"
-                : isCreatingInvoice
-                  ? "Membuat invoice…"
-                  : "Upgrade ke Pro (Rp20.000)"}
-            </button>
-            {isCheckingInvoice && !isPremium && (
-              <p className="mt-0.5 text-[10px] text-gray-400">
-                Menunggu konfirmasi pembayaran…
-              </p>
-            )}
-          </div>
+                Paket saat ini: {isPremium ? "PREMIUM" : "GRATIS"}
+              </div>
+              <button
+                type="button"
+                onClick={handleCreateInvoice}
+                disabled={isPremium || isCreatingInvoice}
+                className={`w-full rounded-2xl px-4 py-2 text-[11px] font-semibold tracking-wide uppercase ${
+                  isPremium
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
+                }`}
+              >
+                {isPremium
+                  ? "Sudah Premium"
+                  : isCreatingInvoice
+                    ? "Memproses Upgrade…"
+                    : "Upgrade"}
+              </button>
+            </div>
+          )}
+          {isCheckingInvoice && !isPremium && (
+            <p className="text-[10px] text-gray-400">
+              Menunggu konfirmasi pembayaran…
+            </p>
+          )}
         </div>
       </div>
 
@@ -435,9 +423,6 @@ export default function SettingsPage() {
           <p className="text-[15px] font-bold tracking-tight text-gray-950">
             Kota untuk jadwal sholat
           </p>
-          <p className="mt-1 text-[13px] leading-5 text-gray-400">
-            Jadwal di beranda otomatis mengikuti kota yang kamu pilih di sini.
-          </p>
           <div className="mt-4">
             <PrayerLocationForm
               province={settings.prayerProvince}
@@ -448,7 +433,6 @@ export default function SettingsPage() {
               cityLoading={cityLoading}
               saving={savingLocation}
               errorMessage={locationError}
-              helperText="Gunakan nama kota atau kabupaten persis seperti data EQuran agar jadwal tampil akurat."
               submitLabel="Simpan lokasi"
               onProvinceChange={handleProvinceChange}
               onCityChange={handleCityChange}

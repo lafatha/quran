@@ -1,17 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  BarChart3,
-  BookOpen,
-  ChevronRight,
-  Clock3,
-  HandHeart,
-  MapPin,
-  Sparkles,
-} from "lucide-react";
+import { ChevronRight, MoreVertical } from "lucide-react";
 import Link from "next/link";
-import PrayerLocationForm from "@/components/PrayerLocationForm";
+import FeatureGrid from "@/components/FeatureGrid";
 import WeeklyCalendarStrip from "@/components/WeeklyCalendarStrip";
 import {
   EMPTY_PRAYER_STATE,
@@ -22,24 +14,11 @@ import {
 import type {
   PrayerLocationState,
   PrayerMonthSchedule,
-  PrayerScheduleItem,
   PrayerState,
 } from "@/lib/prayer";
 import { getQuranData } from "@/lib/quran";
 import { createClient } from "@/lib/supabase/client";
 import type { WeekDayItem } from "@/lib/types";
-
-interface DailyProgressState {
-  ayatRead: number;
-  ayatGoal: number;
-  surahRead: number;
-  surahGoal: number;
-  halamanRead: number;
-  halamanGoal: number;
-  menitRead: number;
-  menitGoal: number;
-  streak: number;
-}
 
 interface ContinueReadState {
   id: number;
@@ -49,84 +28,10 @@ interface ContinueReadState {
   time: string;
 }
 
-interface ShortcutItem {
-  href: string;
-  label: string;
-  caption: string;
-  icon: typeof BookOpen;
-  gradient: string;
-  shadow: string;
-}
-
-interface ProvinceResponse {
-  data?: string[];
-  error?: string;
-}
-
-interface CityResponse {
-  data?: string[];
-  error?: string;
-}
-
 interface ScheduleResponse {
   data?: PrayerMonthSchedule;
   error?: string;
 }
-
-const fallbackProgress: DailyProgressState = {
-  ayatRead: 0,
-  ayatGoal: 2500,
-  surahRead: 0,
-  surahGoal: 150,
-  halamanRead: 0,
-  halamanGoal: 275,
-  menitRead: 0,
-  menitGoal: 70,
-  streak: 0,
-};
-
-const fallbackPrayerSchedule: PrayerScheduleItem[] = [
-  { label: "Subuh", time: "--:--" },
-  { label: "Dzuhur", time: "--:--" },
-  { label: "Ashar", time: "--:--" },
-  { label: "Maghrib", time: "--:--" },
-  { label: "Isya", time: "--:--" },
-];
-
-const shortcuts: ShortcutItem[] = [
-  {
-    href: "/quran",
-    label: "Al-Quran",
-    caption: "Baca 114 surah",
-    icon: BookOpen,
-    gradient: "from-emerald-800 to-teal-700",
-    shadow: "shadow-emerald-950/30",
-  },
-  {
-    href: "/doa",
-    label: "Doa & Dzikir",
-    caption: "227 doa pilihan",
-    icon: HandHeart,
-    gradient: "from-amber-700 to-amber-500",
-    shadow: "shadow-amber-900/25",
-  },
-  {
-    href: "/ai-chat",
-    label: "AI Guide",
-    caption: "Tanya cepat",
-    icon: Sparkles,
-    gradient: "from-indigo-700 to-violet-600",
-    shadow: "shadow-indigo-950/25",
-  },
-  {
-    href: "/progress",
-    label: "Statistik",
-    caption: "Laporan bacaan",
-    icon: BarChart3,
-    gradient: "from-slate-700 to-slate-600",
-    shadow: "shadow-slate-900/20",
-  },
-];
 
 function formatTime(value: string) {
   const date = new Date(value);
@@ -173,105 +78,22 @@ function getWeeklyDays(
   return items;
 }
 
-function getProgressWidth(value: number, goal: number) {
-  if (goal <= 0) {
-    return 0;
-  }
-
-  return Math.min(100, Math.round((value / goal) * 100));
-}
-
 export default function HomePage() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [progress, setProgress] =
-    useState<DailyProgressState>(fallbackProgress);
   const [weekDays, setWeekDays] = useState<WeekDayItem[]>([]);
   const [continueRead, setContinueRead] = useState<ContinueReadState | null>(
     null,
   );
   const [prayerState, setPrayerState] =
     useState<PrayerState>(EMPTY_PRAYER_STATE);
-  const [prayerSchedule, setPrayerSchedule] = useState<PrayerScheduleItem[]>(
-    [],
-  );
   const [prayerMonthSchedule, setPrayerMonthSchedule] =
     useState<PrayerMonthSchedule | null>(null);
   const [prayerLocation, setPrayerLocation] = useState<PrayerLocationState>({
     province: "",
     city: "",
   });
-  const [provinces, setProvinces] = useState<string[]>([]);
-  const [cities, setCities] = useState<string[]>([]);
-  const [provinceLoading, setProvinceLoading] = useState(true);
-  const [cityLoading, setCityLoading] = useState(false);
   const [prayerLoading, setPrayerLoading] = useState(false);
-  const [savingLocation, setSavingLocation] = useState(false);
   const [prayerError, setPrayerError] = useState<string | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const [showLocationModal, setShowLocationModal] = useState(false);
-
-  async function fetchProvinces() {
-    setProvinceLoading(true);
-
-    try {
-      const response = await fetch("/api/prayer/provinces");
-      const result = (await response.json()) as ProvinceResponse;
-
-      if (!response.ok) {
-        setLocationError(result.error ?? "Gagal memuat daftar provinsi.");
-        setProvinces([]);
-        return [] as string[];
-      }
-
-      setLocationError(null);
-      const nextProvinces = result.data ?? [];
-      setProvinces(nextProvinces);
-      return nextProvinces;
-    } catch {
-      setLocationError("Gagal memuat daftar provinsi.");
-      setProvinces([]);
-      return [] as string[];
-    } finally {
-      setProvinceLoading(false);
-    }
-  }
-
-  async function fetchCities(province: string) {
-    if (!province) {
-      setCities([]);
-      return [] as string[];
-    }
-
-    setCityLoading(true);
-
-    try {
-      const response = await fetch("/api/prayer/cities", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ province }),
-      });
-      const result = (await response.json()) as CityResponse;
-
-      if (!response.ok) {
-        setLocationError(result.error ?? "Gagal memuat daftar kota.");
-        setCities([]);
-        return [] as string[];
-      }
-
-      setLocationError(null);
-      const nextCities = result.data ?? [];
-      setCities(nextCities);
-      return nextCities;
-    } catch {
-      setLocationError("Gagal memuat daftar kota.");
-      setCities([]);
-      return [] as string[];
-    } finally {
-      setCityLoading(false);
-    }
-  }
+  const [userName, setUserName] = useState("User");
 
   const applyPrayerSchedule = useCallback((
     date: Date,
@@ -283,7 +105,6 @@ export default function HomePage() {
       null;
     const nextSchedule = getPrayerScheduleForDay(daySchedule);
 
-    setPrayerSchedule(nextSchedule);
     setPrayerState(getPrayerState(date, nextSchedule));
 
     if (!nextSchedule.length) {
@@ -300,7 +121,6 @@ export default function HomePage() {
   ) => {
     if (!location.province || !location.city) {
       setPrayerMonthSchedule(null);
-      setPrayerSchedule([]);
       setPrayerState(EMPTY_PRAYER_STATE);
       return;
     }
@@ -341,7 +161,6 @@ export default function HomePage() {
 
       if (!response.ok || !result.data) {
         setPrayerMonthSchedule(null);
-        setPrayerSchedule([]);
         setPrayerState(EMPTY_PRAYER_STATE);
         setPrayerError(result.error ?? "Gagal memuat jadwal sholat.");
         return;
@@ -357,7 +176,6 @@ export default function HomePage() {
       applyPrayerSchedule(date, result.data);
     } catch {
       setPrayerMonthSchedule(null);
-      setPrayerSchedule([]);
       setPrayerState(EMPTY_PRAYER_STATE);
       setPrayerError("Gagal memuat jadwal sholat.");
     } finally {
@@ -366,9 +184,6 @@ export default function HomePage() {
   }, [applyPrayerSchedule]);
 
   useEffect(() => {
-    // Kick off provinces fetch (for modal form) — fire and forget, non-blocking
-    fetchProvinces();
-
     const supabase = createClient();
 
     supabase.auth.getUser().then(async ({ data }) => {
@@ -377,38 +192,28 @@ export default function HomePage() {
         return;
       }
 
-      setUserId(user.id);
-
       const today = new Date();
       const todayIso = getDateKey(today);
       const weekStart = new Date(today);
       weekStart.setDate(today.getDate() - 6);
 
-      // Run ALL queries in parallel: Supabase + prayer settings together
       const [
+        profileResult,
         goalsResult,
-        streakResult,
-        todayLogResult,
         weekLogsResult,
         progressResult,
         settingsResult,
         surahs,
       ] = await Promise.all([
         supabase
-          .from("user_goals")
-          .select("ayat_goal, surah_goal, halaman_goal, menit_goal")
+          .from("profiles")
+          .select("name")
           .eq("id", user.id)
           .maybeSingle(),
         supabase
-          .from("streaks")
-          .select("current_streak")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("daily_logs")
-          .select("ayat_read, surah_read, halaman_read, minutes_read")
-          .eq("user_id", user.id)
-          .eq("date", todayIso)
+          .from("user_goals")
+          .select("ayat_goal, surah_goal, halaman_goal, menit_goal")
+          .eq("id", user.id)
           .maybeSingle(),
         supabase
           .from("daily_logs")
@@ -417,10 +222,10 @@ export default function HomePage() {
           .gte("date", getDateKey(weekStart))
           .lte("date", todayIso),
         supabase
-          .from("reading_state")
-          .select("surah_id, last_ayat_read, last_read_at")
+          .from("bookmarks")
+          .select("surah_id, ayat_number, updated_at")
           .eq("user_id", user.id)
-          .order("last_read_at", { ascending: false })
+          .order("updated_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
         supabase
@@ -431,24 +236,13 @@ export default function HomePage() {
         getQuranData(),
       ]);
 
+      if (profileResult.data?.name) {
+        setUserName(profileResult.data.name);
+      }
       const goals = goalsResult.data;
-      const streak = streakResult.data;
-      const todayLog = todayLogResult.data;
       const weekLogs = weekLogsResult.data ?? [];
-      const continueRow = progressResult.data;
+      const bookmarkRow = progressResult.data;
       const settings = settingsResult.data;
-
-      setProgress({
-        ayatRead: todayLog?.ayat_read ?? 0,
-        ayatGoal: goals?.ayat_goal ?? 2500,
-        surahRead: todayLog?.surah_read ?? 0,
-        surahGoal: goals?.surah_goal ?? 150,
-        halamanRead: todayLog?.halaman_read ?? 0,
-        halamanGoal: goals?.halaman_goal ?? 275,
-        menitRead: todayLog?.minutes_read ?? 0,
-        menitGoal: goals?.menit_goal ?? 70,
-        streak: streak?.current_streak ?? 0,
-      });
 
       const resolvedAyatGoal = goals?.ayat_goal ?? 2500;
       const weekProgressMap = new Map<string, number>(
@@ -456,14 +250,14 @@ export default function HomePage() {
       );
       setWeekDays(getWeeklyDays(weekProgressMap, resolvedAyatGoal));
 
-      if (continueRow) {
-        const surah = surahs.find((item) => item.id === continueRow.surah_id);
+      if (bookmarkRow) {
+        const surah = surahs.find((item) => item.id === bookmarkRow.surah_id);
         setContinueRead({
-          id: continueRow.surah_id,
-          name: surah?.transliteration ?? `Surah ${continueRow.surah_id}`,
+          id: bookmarkRow.surah_id,
+          name: surah?.transliteration ?? `Surah ${bookmarkRow.surah_id}`,
           ayatCount: surah?.total_verses ?? 0,
-          lastAyatRead: continueRow.last_ayat_read ?? 0,
-          time: formatTime(continueRow.last_read_at),
+          lastAyatRead: bookmarkRow.ayat_number ?? 0,
+          time: formatTime(bookmarkRow.updated_at),
         });
       }
 
@@ -474,15 +268,11 @@ export default function HomePage() {
 
       setPrayerLocation(nextLocation);
 
-      if (!nextLocation.province || !nextLocation.city) {
-        setShowLocationModal(true);
-        setPrayerError("Pilih lokasi terlebih dahulu agar jadwal sholat sesuai kotamu.");
-        return;
+      if (nextLocation.province && nextLocation.city) {
+        await loadPrayerSchedule(nextLocation, today);
+      } else {
+        setPrayerError("Atur lokasi di Pengaturan agar jadwal sholat tampil.");
       }
-
-      // Load prayer schedule immediately — no cities round-trip needed on initial load
-      // loadPrayerSchedule serves from localStorage cache if available (instant)
-      await loadPrayerSchedule(nextLocation, today);
     });
   }, [loadPrayerSchedule]);
 
@@ -492,7 +282,6 @@ export default function HomePage() {
 
       if (!prayerMonthSchedule) {
         if (!prayerLocation.province || !prayerLocation.city) {
-          setPrayerSchedule([]);
           setPrayerState(EMPTY_PRAYER_STATE);
         }
 
@@ -527,106 +316,22 @@ export default function HomePage() {
     return () => window.clearInterval(intervalId);
   }, [applyPrayerSchedule, loadPrayerSchedule, prayerLocation, prayerMonthSchedule]);
 
-  async function handleProvinceChange(value: string) {
-    setPrayerLocation({
-      province: value,
-      city: "",
-    });
-    setLocationError(null);
-    await fetchCities(value);
-  }
-
-  function handleCityChange(value: string) {
-    setPrayerLocation((prev) => ({
-      ...prev,
-      city: value,
-    }));
-    setLocationError(null);
-  }
-
-  async function savePrayerLocation() {
-    if (!userId || !prayerLocation.province || !prayerLocation.city) {
-      return;
-    }
-
-    setSavingLocation(true);
-
-    try {
-      const supabase = createClient();
-      await supabase.from("user_settings").upsert({
-        id: userId,
-        prayer_province: prayerLocation.province,
-        prayer_city: prayerLocation.city,
-      });
-
-      setShowLocationModal(false);
-      setPrayerError(null);
-      await loadPrayerSchedule(prayerLocation, new Date());
-    } catch {
-      setLocationError("Gagal menyimpan lokasi sholat.");
-    } finally {
-      setSavingLocation(false);
-    }
-  }
-
-  const continueProgress = continueRead
-    ? getProgressWidth(continueRead.lastAyatRead, continueRead.ayatCount)
-    : 0;
-  const displayPrayerSchedule = prayerSchedule.length
-    ? prayerSchedule
-    : fallbackPrayerSchedule;
-  const prayerLocationLabel = prayerLocation.city && prayerLocation.province
-    ? `${prayerLocation.city}, ${prayerLocation.province}`
-    : "Lokasi belum diatur";
-
   return (
     <>
       <div className="min-h-screen bg-[linear-gradient(180deg,#eaf5f0_0%,#f4f9f6_30%,#ffffff_100%)] pb-28">
         {/* Header */}
         <div className="px-5 pt-6 pb-2">
           <div className="flex items-center justify-between gap-3">
-            <h1 className="text-[1.9rem] font-bold tracking-tight leading-none text-emerald-950">
-              Mufasir
-            </h1>
-            <div className="flex items-center gap-1.5 rounded-2xl bg-gradient-to-br from-emerald-700 to-teal-600 px-3.5 py-2.5 shadow-lg shadow-emerald-900/25">
-              <svg
-                viewBox="0 0 24 24"
-                className="h-4 w-4"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <circle
-                  cx="12"
-                  cy="13"
-                  r="8"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="1"
-                />
-                <circle cx="12" cy="5" r="1.4" fill="white" />
-                <circle cx="17.7" cy="7.3" r="1.4" fill="white" />
-                <circle cx="20" cy="13" r="1.4" fill="white" />
-                <circle cx="17.7" cy="18.7" r="1.4" fill="white" />
-                <circle cx="12" cy="21" r="1.4" fill="white" />
-                <circle cx="6.3" cy="18.7" r="1.4" fill="white" />
-                <circle cx="4" cy="13" r="1.4" fill="white" />
-                <circle cx="6.3" cy="7.3" r="1.4" fill="white" />
-                <path
-                  d="M12 5 L12 2.5"
-                  stroke="white"
-                  strokeWidth="1.2"
-                  strokeLinecap="round"
-                  fill="none"
-                />
-                <circle cx="12" cy="1.5" r="1.2" fill="white" />
-              </svg>
-              <span className="text-sm font-bold leading-none text-white">
-                {progress.streak}
-              </span>
-              <span className="text-[11px] font-medium text-emerald-100/80">
-                hari
-              </span>
-            </div>
+            <p className="text-[19px] font-semibold tracking-tight text-gray-950">
+              Assalamualaikum, {userName}
+            </p>
+            <button
+              type="button"
+              className="p-2 rounded-xl text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+              aria-label="Menu"
+            >
+              <MoreVertical className="h-5 w-5" strokeWidth={2} />
+            </button>
           </div>
         </div>
 
@@ -635,219 +340,95 @@ export default function HomePage() {
           <WeeklyCalendarStrip days={weekDays} />
         </div>
 
-        {/* Prayer Card */}
-        <div className="mt-4 px-4">
-          <div className="relative overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#022c22_0%,#064e3b_50%,#065f46_100%)] p-5 shadow-xl shadow-emerald-950/30">
-            {/* Decorative rings */}
-            <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full border-[14px] border-white/5" />
-            <div className="pointer-events-none absolute -right-4 top-6 h-28 w-28 rounded-full border-[10px] border-white/10" />
-            <div className="pointer-events-none absolute right-10 top-16 h-10 w-10 rounded-full border-[4px] border-emerald-400/20" />
-
-            <div className="relative z-10 mb-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 backdrop-blur-sm">
-                <MapPin className="h-3.5 w-3.5 text-white/80" />
-                <p className="text-[10px] font-semibold text-white/90">
-                  {prayerLocationLabel}
-                </p>
-              </div>
-              {!showLocationModal && (
-                <Link
-                  href="/settings"
-                  className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75"
-                >
-                  Ubah
-                </Link>
-              )}
+        {/* Row 1: Next Prayer + Lanjut Baca compact */}
+        <div className="mt-4 px-4 grid grid-cols-2 gap-3">
+          {/* Next Prayer card */}
+          <div className="relative overflow-hidden rounded-2xl bg-emerald-100 border border-emerald-200/80 p-4 shadow-sm">
+            <div
+              className="pointer-events-none absolute top-2 bottom-0 right-0 w-1/2 bg-[url('/masjid.png')] bg-no-repeat [background-position:calc(100%+0.75rem)_1rem] bg-contain opacity-40"
+              aria-hidden="true"
+            />
+            <div className="flex items-center gap-2 mb-2">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-4 w-4 text-emerald-700"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-800">
+                Next {prayerState.nextPrayerName}
+              </span>
             </div>
-
-            {!prayerLocation.province || !prayerLocation.city ? (
-              <div className="relative z-10 mb-4 rounded-2xl border border-white/15 bg-black/20 px-4 py-3 backdrop-blur-sm">
-                <p className="text-sm font-semibold text-white">
-                  Lokasi sholat belum diatur.
-                </p>
-                <p className="mt-1 text-xs leading-5 text-white/75">
-                  Pilih provinsi dan kota dulu supaya jam sholat di home sesuai lokasi kamu.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowLocationModal(true)}
-                  className="mt-3 inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-xs font-semibold text-black"
-                >
-                  Isi lokasi sekarang
-                </button>
-              </div>
-            ) : null}
-
-            {/* 5 Prayer pills */}
-            <div className="relative z-10 mb-5 flex gap-1.5">
-              {displayPrayerSchedule.map((prayer) => {
-                const isNext = prayer.label === prayerState.nextPrayerName;
-                return (
-                  <div
-                    key={prayer.label}
-                    className={`flex-1 rounded-xl py-2 text-center transition-all ${
-                      isNext
-                        ? "bg-white/20 ring-1 ring-white/30 backdrop-blur-sm"
-                        : "bg-white/7"
-                    }`}
-                  >
-                    <p
-                      className={`text-[9px] font-bold uppercase tracking-wider ${
-                        isNext ? "text-white" : "text-emerald-400/70"
-                      }`}
-                    >
-                      {prayer.label}
-                    </p>
-                    <p
-                      className={`mt-0.5 text-[11px] font-semibold ${
-                        isNext ? "text-white" : "text-emerald-400/50"
-                      }`}
-                    >
-                      {prayerLoading ? "..." : prayer.time}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Main prayer info */}
-            <div className="relative z-10 flex items-end justify-between gap-3">
-              <div>
-                <div className="mb-1 flex items-center gap-1.5">
-                  <Clock3 className="h-3.5 w-3.5 text-emerald-400" />
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-400">
-                    Salat Berikutnya
-                  </p>
-                </div>
-                <p className="text-[1.8rem] font-bold tracking-tight leading-none text-white">
-                  {prayerLoading ? "Memuat" : prayerState.nextPrayerName}
-                </p>
-                <p className="mt-1.5 text-[13px] text-emerald-300/80">
-                  {prayerError ?? prayerState.countdown}
-                </p>
-              </div>
-              <div className="shrink-0 text-right">
-                <p className="text-[2.3rem] font-bold tracking-tight leading-none text-white">
+            {prayerLocation.province && prayerLocation.city ? (
+              <>
+                <p className="text-2xl font-bold tracking-tight text-gray-950">
                   {prayerLoading ? "--:--" : prayerState.nextPrayerTime}
                 </p>
-                <p className="mt-1 text-[11px] text-emerald-300/80">
-                  Sekarang {prayerState.currentTime}
+                <p className="mt-1 text-xs text-gray-600">
+                  {prayerError ?? prayerState.countdown}
                 </p>
-              </div>
-            </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-semibold text-gray-700">--:--</p>
+                <p className="mt-1 text-xs text-gray-600">
+                  Atur lokasi di Pengaturan agar jadwal sholat tampil.
+                </p>
+              </>
+            )}
           </div>
-        </div>
 
-        {/* Quick Access */}
-        <div className="mt-5 px-4">
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
-            Menu Utama
-          </p>
-          <div className="grid grid-cols-4 gap-2.5">
-            {shortcuts.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`group relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br ${item.gradient} p-2.5 shadow-lg ${item.shadow} transition-transform active:scale-[0.97]`}
-                >
-                  {/* Card decoration */}
-                  <div className="pointer-events-none absolute -bottom-4 -right-4 h-20 w-20 rounded-full bg-white/8" />
-                  <div className="pointer-events-none absolute bottom-4 right-3 h-7 w-7 rounded-full bg-white/5" />
-
-                  <div className="relative z-10">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-white/18 backdrop-blur-sm">
-                      <Icon className="h-4 w-4 text-white" strokeWidth={2} />
-                    </div>
-                    <p className="mt-2 text-[12px] font-bold tracking-tight leading-tight text-white text-center">
-                      {item.label}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Continue Reading */}
-        <div className="mt-4 mb-2 px-4">
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
-            Lanjut Baca
-          </p>
-          <div className="overflow-hidden rounded-[28px] border border-emerald-100/80 bg-white shadow-sm shadow-emerald-950/5">
-            {/* Progress strip at top */}
-            <div className="h-1 w-full bg-gray-100">
-              <div
-                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-700"
-                style={{ width: `${continueProgress}%` }}
-              />
-            </div>
-
-            <div className="p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xl font-bold tracking-tight text-gray-950">
-                    {continueRead?.name ?? "Mulai bacaan pertama"}
-                  </p>
-                  <p className="mt-1 text-[13px] text-gray-400">
-                    {continueRead
-                      ? `Ayat ${continueRead.lastAyatRead} dari ${continueRead.ayatCount} · ${continueRead.time}`
-                      : "Belum ada riwayat bacaan tersimpan."}
-                  </p>
-                </div>
-                {continueRead && (
-                  <div className="shrink-0 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-center">
-                    <p className="text-lg font-bold leading-none text-emerald-700">
-                      {continueProgress}%
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <Link
-                href={continueRead ? `/quran/${continueRead.id}` : "/quran"}
-                className="mt-4 flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-600 text-sm font-semibold text-white shadow-md shadow-emerald-900/20 transition-transform active:scale-[0.98]"
-              >
-                {continueRead ? "Lanjutkan Membaca" : "Mulai Baca Sekarang"}
-                <ChevronRight className="h-4 w-4" strokeWidth={2.5} />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {showLocationModal && (
-        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/55 pt-10 backdrop-blur-sm">
-          <div className="w-full max-w-[390px] rounded-t-[28px] bg-white p-5 shadow-2xl shadow-black/25">
-            <div className="mx-auto mb-4 h-1.5 w-14 rounded-full bg-gray-200" />
-            <div className="mb-4">
-              <h2 className="text-lg font-bold tracking-tight text-gray-950">
-                Atur lokasi jadwal sholat
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-gray-500">
-                Kamu belum menentukan lokasi. Pilih provinsi dan kota dulu agar jam sholat di home otomatis sesuai lokasi kamu.
-              </p>
-            </div>
-
-            <PrayerLocationForm
-              province={prayerLocation.province}
-              city={prayerLocation.city}
-              provinces={provinces}
-              cities={cities}
-              provinceLoading={provinceLoading}
-              cityLoading={cityLoading}
-              saving={savingLocation}
-              errorMessage={locationError}
-              helperText="Kamu tetap bisa mengubah lokasi ini kapan saja dari halaman Settings."
-              submitLabel="Simpan & tampilkan jadwal"
-              onProvinceChange={handleProvinceChange}
-              onCityChange={handleCityChange}
-              onSubmit={savePrayerLocation}
+          {/* Lanjut Baca compact */}
+          <Link
+            href={continueRead ? `/quran/${continueRead.id}` : "/quran"}
+            className="relative overflow-hidden rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm flex flex-col justify-between transition-colors hover:bg-amber-100"
+          >
+            <div
+              className="pointer-events-none absolute top-2 bottom-0 right-0 w-[170%] bg-[url('/quran.png')] bg-no-repeat [background-position:calc(100%+1.5rem)_2rem] bg-contain opacity-40"
+              aria-hidden="true"
             />
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">
+              Lanjut Baca
+            </span>
+            <p className="mt-1 text-sm font-bold tracking-tight text-gray-950 truncate">
+              {continueRead?.name ?? "Mulai bacaan pertama"}
+            </p>
+            <span className="mt-2 text-xs flex items-center gap-0.5 text-amber-600">
+              {continueRead ? `Ayat ${continueRead.lastAyatRead}` : "Belum ada riwayat"}
+              <ChevronRight className="h-3 w-3" strokeWidth={2.5} />
+            </span>
+          </Link>
+        </div>
+
+        {/* Row 2: Feature grid */}
+        <div className="mt-4 px-4">
+          <FeatureGrid />
+        </div>
+
+        {/* Doa hari ini */}
+        <div className="mt-4 px-4">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm px-4 py-5">
+            <p className="text-[15px] font-bold text-gray-900">
+              Doa hari ini
+            </p>
+            <p className="arabic-text text-xl leading-loose mt-3 text-gray-900">
+              وَتُبْ عَلَيْنَا إِنَّكَ أَنْتَ التَّوَّابُ الرَّحِيمُ
+            </p>
+            <p className="mt-3 text-[13px] leading-relaxed text-gray-700">
+              Ya Tuhan kami, terimalah daripada kami (amalan kami),
+              sesungguhnya Engkaulah Yang Maha Mendengar lagi Maha Mengetahui.
+              Dan terimalah taubat kami. Sesungguhnya Engkaulah Yang Maha
+              Penerima taubat lagi Maha Penyayang.
+            </p>
+            <p className="mt-3 text-[12px] font-medium text-gray-400">
+              QS. Al Baqarah [2]: 127–128
+            </p>
           </div>
         </div>
-      )}
+
+      </div>
     </>
   );
 }
