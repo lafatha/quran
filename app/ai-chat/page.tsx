@@ -1107,7 +1107,7 @@ export default function AIChatPage() {
       };
       setCurrentInvoiceId(data.invoiceId);
       if (data.paymentUrl) {
-        window.open(data.paymentUrl, "_blank");
+        window.location.href = data.paymentUrl;
       }
     } finally {
       setIsCreatingInvoice(false);
@@ -1157,6 +1157,32 @@ export default function AIChatPage() {
       cancelled = true;
     };
   }, [currentInvoiceId, isPremium]);
+
+  useEffect(() => {
+    if (!currentInvoiceId || isPremium) return;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== "visible") return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.id) return;
+      const res = await fetch("/api/billing/mayar/check-invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: currentInvoiceId, userId: user.id }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { isPremium?: boolean };
+      if (data.isPremium) {
+        setIsPremium(true);
+        setIsUpgradeModalOpen(false);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [currentInvoiceId, isPremium, supabase]);
 
   return (
     <div className="h-[100dvh] max-h-[100dvh] bg-[linear-gradient(180deg,#eaf5f0_0%,#f4f9f6_30%,#ffffff_100%)] relative overflow-hidden">

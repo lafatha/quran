@@ -265,7 +265,7 @@ export default function SettingsPage() {
       };
       setCurrentInvoiceId(data.invoiceId);
       if (data.paymentUrl) {
-        window.open(data.paymentUrl, "_blank");
+        window.location.href = data.paymentUrl;
       }
     } finally {
       setIsCreatingInvoice(false);
@@ -313,6 +313,32 @@ export default function SettingsPage() {
 
     return () => {
       cancelled = true;
+    };
+  }, [currentInvoiceId, isPremium]);
+
+  useEffect(() => {
+    if (!currentInvoiceId || isPremium) return;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== "visible") return;
+      const supabaseAuth = createClient();
+      const { data: { user } } = await supabaseAuth.auth.getUser();
+      if (!user?.id) return;
+      const response = await fetch("/api/billing/mayar/check-invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: currentInvoiceId, userId: user.id }),
+      });
+      if (!response.ok) return;
+      const data = (await response.json()) as { isPremium?: boolean };
+      if (data.isPremium) {
+        setIsPremium(true);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [currentInvoiceId, isPremium]);
 
