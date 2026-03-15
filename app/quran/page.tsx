@@ -166,11 +166,6 @@ export default function QuranPage() {
                       <p className="font-semibold text-[15px] tracking-tight truncate text-gray-900 group-hover:text-emerald-700 transition-colors">
                         {surah.transliteration}
                       </p>
-                      <span
-                        className={`text-[9px] px-2 py-0.5 font-bold rounded-full uppercase tracking-widest shrink-0 ${surah.type === "meccan" ? "bg-cyan-50 text-cyan-600" : "bg-teal-50 text-teal-600"}`}
-                      >
-                        {surah.type === "meccan" ? "Makkiyah" : "Madaniyah"}
-                      </span>
                     </div>
                     <p className="text-xs text-gray-500 group-hover:text-emerald-600/70 transition-colors">
                       {surah.translation}{" "}

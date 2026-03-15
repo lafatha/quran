@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
         name: customerName,
         email: customerEmail,
         mobile: "081234567890",
-        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/settings`,
+        redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://mufassir-iota.vercel.app"}/settings`,
         description: "Upgrade Premium Mufassir AI - akses tanpa batas",
         expiredAt,
         items: [
