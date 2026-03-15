@@ -4,13 +4,11 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Bell,
-  BookOpen,
   ChevronRight,
   FileText,
-  Globe,
   LogOut,
+  MapPin,
   Shield,
-  Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import PrayerLocationForm from "@/components/PrayerLocationForm";
@@ -19,8 +17,6 @@ import { createClient } from "@/lib/supabase/client";
 interface SettingsData {
   prayerReminder: boolean;
   readingNotification: boolean;
-  language: string;
-  dailyTargetPages: number;
   prayerProvince: string;
   prayerCity: string;
 }
@@ -43,8 +39,6 @@ interface CityResponse {
 const defaultSettings: SettingsData = {
   prayerReminder: true,
   readingNotification: false,
-  language: "id",
-  dailyTargetPages: 5,
   prayerProvince: "",
   prayerCity: "",
 };
@@ -82,6 +76,7 @@ export default function SettingsPage() {
   const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
   const [currentInvoiceId, setCurrentInvoiceId] = useState<string | null>(null);
   const [isCheckingInvoice, setIsCheckingInvoice] = useState(false);
+  const [locationExpanded, setLocationExpanded] = useState(false);
 
   async function fetchProvinces() {
     setProvinceLoading(true);
@@ -144,8 +139,6 @@ export default function SettingsPage() {
       id: userId,
       prayer_reminder: next.prayerReminder,
       reading_notification: next.readingNotification,
-      language: next.language,
-      daily_target_pages: next.dailyTargetPages,
       prayer_province: next.prayerProvince || null,
       prayer_city: next.prayerCity || null,
     });
@@ -169,7 +162,7 @@ export default function SettingsPage() {
           .maybeSingle(),
         supabase
           .from("user_settings")
-          .select("prayer_reminder, reading_notification, language, daily_target_pages, prayer_province, prayer_city")
+          .select("prayer_reminder, reading_notification, prayer_province, prayer_city")
           .eq("id", user.id)
           .maybeSingle(),
         supabase
@@ -189,8 +182,6 @@ export default function SettingsPage() {
         const nextSettings: SettingsData = {
           prayerReminder: settingsResult.data.prayer_reminder,
           readingNotification: settingsResult.data.reading_notification,
-          language: settingsResult.data.language,
-          dailyTargetPages: settingsResult.data.daily_target_pages,
           prayerProvince: settingsResult.data.prayer_province ?? "",
           prayerCity: settingsResult.data.prayer_city ?? "",
         };
@@ -228,6 +219,7 @@ export default function SettingsPage() {
       await persistSettings(settings);
       setLocationError(null);
       setLocationMessage("Lokasi jadwal sholat berhasil disimpan.");
+      setLocationExpanded(false);
     } catch {
       setLocationError("Gagal menyimpan lokasi jadwal sholat.");
     } finally {
@@ -419,60 +411,65 @@ export default function SettingsPage() {
         <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
           Lokasi Sholat
         </p>
-        <div className="rounded-[28px] border border-emerald-100/80 bg-white p-5 shadow-sm shadow-emerald-950/5">
-          <p className="text-[15px] font-bold tracking-tight text-gray-950">
-            Kota untuk jadwal sholat
-          </p>
-          <div className="mt-4">
-            <PrayerLocationForm
-              province={settings.prayerProvince}
-              city={settings.prayerCity}
-              provinces={provinces}
-              cities={cities}
-              provinceLoading={provinceLoading}
-              cityLoading={cityLoading}
-              saving={savingLocation}
-              errorMessage={locationError}
-              submitLabel="Simpan lokasi"
-              onProvinceChange={handleProvinceChange}
-              onCityChange={handleCityChange}
-              onSubmit={savePrayerLocation}
-            />
-          </div>
-          {locationMessage && (
-            <div className="mt-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">
-              {locationMessage}
+        <div className="overflow-hidden rounded-[28px] border border-emerald-100/80 bg-white shadow-sm shadow-emerald-950/5">
+          {/* Compact row */}
+          <button
+            type="button"
+            onClick={() => {
+              setLocationExpanded((prev) => !prev);
+              setLocationMessage(null);
+            }}
+            className="flex w-full items-center justify-between px-5 py-4"
+          >
+            <div className="flex items-center gap-3">
+              <MapPin className="h-5 w-5 text-gray-300" />
+              <span className="text-[14px] font-medium text-gray-900">Kota Jadwal Sholat</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[13px] text-gray-400">
+                {settings.prayerCity || "Belum diatur"}
+              </span>
+              <ChevronRight
+                className={`h-4 w-4 text-gray-300 transition-transform duration-200 ${locationExpanded ? "rotate-90" : ""}`}
+              />
+            </div>
+          </button>
+
+          {/* Accordion content */}
+          {locationExpanded && (
+            <div className="border-t border-gray-100 px-5 py-4">
+              <PrayerLocationForm
+                province={settings.prayerProvince}
+                city={settings.prayerCity}
+                provinces={provinces}
+                cities={cities}
+                provinceLoading={provinceLoading}
+                cityLoading={cityLoading}
+                saving={savingLocation}
+                errorMessage={locationError}
+                submitLabel="Simpan lokasi"
+                onProvinceChange={handleProvinceChange}
+                onCityChange={handleCityChange}
+                onSubmit={savePrayerLocation}
+              />
+            </div>
+          )}
+
+          {/* Success message (shown outside accordion) */}
+          {locationMessage && !locationExpanded && (
+            <div className="border-t border-gray-100 px-5 py-3">
+              <p className="text-[13px] text-emerald-600">{locationMessage}</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Target & Pengingat */}
+      {/* Pengingat */}
       <div className="mt-5 px-4">
         <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
-          Target & Pengingat
+          Pengingat
         </p>
         <div className="overflow-hidden rounded-[28px] border border-emerald-100/80 bg-white shadow-sm shadow-emerald-950/5 divide-y divide-gray-100">
-          {/* Target harian */}
-          <div className="flex items-center justify-between px-5 py-4">
-            <div className="flex items-center gap-3">
-              <BookOpen className="h-5 w-5 text-gray-300" />
-              <span className="text-[14px] font-medium text-gray-900">Target Harian</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min={1}
-                value={settings.dailyTargetPages}
-                onChange={(event) => {
-                  const value = Number(event.target.value);
-                  updateSetting({ dailyTargetPages: Number.isNaN(value) || value < 1 ? 1 : value });
-                }}
-                className="h-8 w-14 rounded-xl border border-gray-200 text-center text-sm font-bold text-gray-950 outline-none focus:border-gray-400"
-              />
-              <span className="text-[13px] text-gray-400">halaman</span>
-            </div>
-          </div>
           {/* Pengingat sholat */}
           <div className="flex items-center justify-between px-5 py-4">
             <div className="flex items-center gap-3">
@@ -494,31 +491,6 @@ export default function SettingsPage() {
               on={settings.readingNotification}
               onChange={(value) => updateSetting({ readingNotification: value })}
             />
-          </div>
-        </div>
-      </div>
-
-      {/* Bahasa */}
-      <div className="mt-5 px-4">
-        <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
-          Bahasa
-        </p>
-        <div className="overflow-hidden rounded-[28px] border border-emerald-100/80 bg-white shadow-sm shadow-emerald-950/5">
-          <div className="flex items-center justify-between px-5 py-4">
-            <div className="flex items-center gap-3">
-              <Globe className="h-5 w-5 text-gray-300" />
-              <span className="text-[14px] font-medium text-gray-900">Bahasa Aplikasi</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => updateSetting({ language: settings.language === "id" ? "en" : "id" })}
-              className="flex items-center gap-1.5"
-            >
-              <span className="text-[14px] font-semibold text-gray-950">
-                {settings.language === "id" ? "Indonesia" : "English"}
-              </span>
-              <ChevronRight className="h-4 w-4 text-gray-300" />
-            </button>
           </div>
         </div>
       </div>
