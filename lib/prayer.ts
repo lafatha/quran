@@ -106,3 +106,27 @@ export function getPrayerState(date: Date, schedule: PrayerScheduleItem[]) {
     countdown: formatCountdown(remainingMinutes),
   };
 }
+
+/** Returns the label of the prayer we are currently in (from its time until the next). Null if schedule has no valid times. */
+export function getCurrentPrayerName(
+  date: Date,
+  schedule: PrayerScheduleItem[],
+): string | null {
+  if (!schedule.length) {
+    return null;
+  }
+
+  const currentMinutes = date.getHours() * 60 + date.getMinutes();
+
+  for (let i = schedule.length - 1; i >= 0; i--) {
+    const time = schedule[i].time;
+    if (time === "--:--" || time.includes("--")) {
+      return null;
+    }
+    if (getTimeInMinutes(time) <= currentMinutes) {
+      return schedule[i].label;
+    }
+  }
+
+  return schedule[schedule.length - 1].label;
+}

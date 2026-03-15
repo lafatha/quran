@@ -469,11 +469,12 @@ function Sidebar({
       {isOpen && (
         <motion.aside
           key="drawer"
-          initial={{ x: -32, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: -32, opacity: 0 }}
-          transition={{ duration: 0.24, ease: "easeOut" }}
-          className="absolute inset-y-0 left-0 z-10 w-[78%] max-w-[300px]"
+          initial={{ x: "-100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "-100%" }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          style={{ backfaceVisibility: "hidden" }}
+          className="absolute inset-y-0 left-0 z-10 w-[300px]"
         >
           <div className="flex h-full flex-col bg-[linear-gradient(180deg,#022c22_0%,#053d2e_50%,#064e3b_100%)]">
             {/* Decorative top accent */}
@@ -1173,8 +1174,9 @@ export default function AIChatPage() {
       />
 
       <motion.div
-        animate={{ x: sidebarOpen ? 286 : 0 }}
-        transition={{ type: "spring", stiffness: 260, damping: 28 }}
+        animate={{ x: sidebarOpen ? 300 : 0 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        style={{ backfaceVisibility: "hidden" }}
         className="relative z-20 flex h-full flex-col overflow-hidden bg-[linear-gradient(180deg,#eaf5f0_0%,#f4f9f6_30%,#ffffff_100%)]"
       >
         {sidebarOpen && (

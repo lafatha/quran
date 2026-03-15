@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import {
+  getCurrentPrayerName,
   getDateKey,
   getPrayerScheduleForDay,
 } from "@/lib/prayer";
@@ -27,6 +28,14 @@ const PRAYER_LABELS: PrayerScheduleItem[] = [
   { label: "Isya", time: "--:--" },
 ];
 
+const PRAYER_DESCRIPTIONS: Record<string, string> = {
+  Subuh: "Sholat fajar, dua rakaat sebelum terbit matahari.",
+  Dzuhur: "Sholat tengah hari, empat rakaat setelah matahari tergelincir.",
+  Ashar: "Sholat sore, empat rakaat saat bayangan sama panjang dengan benda.",
+  Maghrib: "Sholat setelah matahari terbenam, tiga rakaat.",
+  Isya: "Sholat malam, empat rakaat setelah syafak hilang.",
+};
+
 export default function TrackerPage() {
   const [location, setLocation] = useState<PrayerLocationState>({
     province: "",
@@ -35,6 +44,7 @@ export default function TrackerPage() {
   const [schedule, setSchedule] = useState<PrayerScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState<Date>(() => new Date());
 
   useEffect(() => {
     const supabase = createClient();
@@ -120,7 +130,13 @@ export default function TrackerPage() {
     });
   }, []);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setNow(new Date()), 60000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
   const displaySchedule = schedule.length ? schedule : PRAYER_LABELS;
+  const currentPrayerName = getCurrentPrayerName(now, displaySchedule);
   const locationLabel = location.city && location.province
     ? `${location.city}, ${location.province}`
     : null;
@@ -162,20 +178,57 @@ export default function TrackerPage() {
         {loading ? (
           <p className="text-[13px] text-gray-400">Memuat jadwal…</p>
         ) : (
-          <div className="space-y-2">
-            {displaySchedule.map((item) => (
-              <div
-                key={item.label}
-                className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
-              >
-                <span className="text-[15px] font-semibold text-gray-900">
-                  {item.label}
-                </span>
-                <span className="text-[15px] font-medium tabular-nums text-gray-700">
-                  {item.time}
-                </span>
-              </div>
-            ))}
+          <div className="space-y-3">
+            {displaySchedule.map((item) => {
+              const isCurrent = currentPrayerName === item.label;
+              const description = PRAYER_DESCRIPTIONS[item.label];
+
+              return (
+                <div
+                  key={item.label}
+                  className={`rounded-2xl border px-4 py-3.5 shadow-sm ${
+                    isCurrent
+                      ? "border-emerald-400 bg-emerald-50 ring-1 ring-emerald-200/60"
+                      : "border-gray-200 bg-white"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`text-[15px] font-semibold ${
+                            isCurrent ? "text-emerald-900" : "text-gray-900"
+                          }`}
+                        >
+                          {item.label}
+                        </span>
+                        {isCurrent && (
+                          <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
+                            Sekarang
+                          </span>
+                        )}
+                      </div>
+                      {description && (
+                        <p
+                          className={`mt-1.5 text-[13px] leading-snug ${
+                            isCurrent ? "text-emerald-800/90" : "text-gray-500"
+                          }`}
+                        >
+                          {description}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className={`shrink-0 text-[15px] font-semibold tabular-nums ${
+                        isCurrent ? "text-emerald-800" : "text-gray-700"
+                      }`}
+                    >
+                      {item.time}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { Mail, Lock, UserRound, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -15,24 +16,6 @@ function GoogleIcon() {
         fill="#EA4335"
         d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.8-5.5 3.8-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.2.8 3.9 1.5l2.6-2.5C16.9 3.4 14.7 2.5 12 2.5A9.5 9.5 0 0 0 2.5 12 9.5 9.5 0 0 0 12 21.5c5.5 0 9.1-3.8 9.1-9.2 0-.6-.1-1.1-.2-1.6H12Z"
       />
-    </svg>
-  );
-}
-
-function QuranLogo() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="currentColor" aria-hidden="true">
-      <circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" strokeWidth="1" />
-      <circle cx="12" cy="5" r="1.4" />
-      <circle cx="17.7" cy="7.3" r="1.4" />
-      <circle cx="20" cy="13" r="1.4" />
-      <circle cx="17.7" cy="18.7" r="1.4" />
-      <circle cx="12" cy="21" r="1.4" />
-      <circle cx="6.3" cy="18.7" r="1.4" />
-      <circle cx="4" cy="13" r="1.4" />
-      <circle cx="6.3" cy="7.3" r="1.4" />
-      <path d="M12 5 L12 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" fill="none" />
-      <circle cx="12" cy="1.5" r="1.2" />
     </svg>
   );
 }
@@ -124,12 +107,6 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(160deg,#022c22_0%,#064e3b_45%,#065f46_100%)]">
-      {/* Decorative background rings */}
-      <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full border-[20px] border-white/5" />
-      <div className="pointer-events-none absolute -right-6 top-20 h-44 w-44 rounded-full border-[14px] border-white/8" />
-      <div className="pointer-events-none absolute right-14 top-44 h-16 w-16 rounded-full border-[5px] border-emerald-400/20" />
-      <div className="pointer-events-none absolute -left-12 bottom-40 h-56 w-56 rounded-full border-[16px] border-white/5" />
-
       {/* Top hero section */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
@@ -138,8 +115,8 @@ export default function LoginPage() {
         className="relative z-10 px-6 pt-16 pb-10 text-center"
       >
         {/* Logo badge */}
-        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[28px] bg-white/15 text-white shadow-lg shadow-black/20 backdrop-blur-sm ring-1 ring-white/20">
-          <QuranLogo />
+        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center overflow-hidden rounded-[28px] bg-white/15 shadow-lg shadow-black/20 backdrop-blur-sm ring-1 ring-white/20">
+          <Image src="/mosque.png" alt="Masjid" width={56} height={56} className="object-contain" />
         </div>
         <h1 className="text-[2rem] font-bold tracking-tight leading-none text-white">
           Mufasir

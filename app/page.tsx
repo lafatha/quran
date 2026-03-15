@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ChevronRight, MoreVertical } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import FeatureGrid from "@/components/FeatureGrid";
 import WeeklyCalendarStrip from "@/components/WeeklyCalendarStrip";
@@ -321,18 +321,9 @@ export default function HomePage() {
       <div className="min-h-screen bg-[linear-gradient(180deg,#eaf5f0_0%,#f4f9f6_30%,#ffffff_100%)] pb-28">
         {/* Header */}
         <div className="px-5 pt-6 pb-2">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-[19px] font-semibold tracking-tight text-gray-950">
-              Assalamualaikum, {userName}
-            </p>
-            <button
-              type="button"
-              className="p-2 rounded-xl text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
-              aria-label="Menu"
-            >
-              <MoreVertical className="h-5 w-5" strokeWidth={2} />
-            </button>
-          </div>
+          <p className="text-[19px] font-semibold tracking-tight text-gray-950">
+            Assalamualaikum, {userName}
+          </p>
         </div>
 
         {/* Weekly Calendar */}

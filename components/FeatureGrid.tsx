@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, CalendarCheck, CircleDot, Sparkles } from "lucide-react";
+import { BookOpen, BookMarked, CalendarCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 const features = [
@@ -15,8 +15,8 @@ const features = [
     href: "/ai-chat",
   },
   {
-    label: "Dua",
-    icon: CircleDot,
+    label: "Doa",
+    icon: BookMarked,
     href: "/doa",
   },
   {

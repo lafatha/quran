@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ChevronDown, BookOpen, X } from "lucide-react";
+import { Search, ChevronDown, BookOpen, X, ChevronLeft } from "lucide-react";
 
 interface DoaItem {
   id: number;
@@ -77,13 +78,22 @@ export default function DoaPage() {
     <div className="min-h-screen bg-[linear-gradient(180deg,#eef7f4_0%,#f7faf8_28%,#ffffff_100%)] pb-28">
       {/* Header */}
       <div className="px-5 pt-5 pb-2">
-        <div>
-          <h1 className="text-[1.85rem] font-bold tracking-tight text-emerald-950">
-            Doa & Dzikir
-          </h1>
-          <p className="mt-0.5 text-sm text-emerald-700/70">
-            {loading ? "Memuat doa..." : `${doaList.length} doa tersedia`}
-          </p>
+        <div className="flex items-start gap-3">
+          <Link
+            href="/"
+            className="mt-1 p-1.5 rounded-xl text-emerald-700 hover:bg-emerald-100 transition-colors"
+            aria-label="Kembali"
+          >
+            <ChevronLeft className="h-5 w-5" strokeWidth={2} />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[1.85rem] font-bold tracking-tight text-emerald-950">
+              Doa & Dzikir
+            </h1>
+            <p className="mt-0.5 text-sm text-emerald-700/70">
+              {loading ? "Memuat doa..." : `${doaList.length} doa tersedia`}
+            </p>
+          </div>
         </div>
       </div>
 
