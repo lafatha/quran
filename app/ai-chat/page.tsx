@@ -913,7 +913,7 @@ export default function AIChatPage() {
           }
         });
 
-        if (!isPremium && usageDate) {
+        if (!isPremium && usageDate && userId) {
           const newCount = promptCount + 1;
           setPromptCount(newCount);
           supabase
@@ -1075,7 +1075,7 @@ export default function AIChatPage() {
         {
           user_id: userId,
           usage_date: usageDate,
-          prompt_count,
+          prompt_count: promptCount,
           upgrade_declined: true,
         },
         {

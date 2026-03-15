@@ -20,7 +20,7 @@ export default function DuaWidget() {
           ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الْأَجْرُ إِنْ شَاءَ اللَّهُ
         </p>
         <p className="text-[10px] text-gray-600 font-medium line-clamp-3">
-          Dhahaba al-zama'u wa abtalat al-'uruqu wa thabata al-ajru in syaa Allah. &ldquo;Telah hilang dahaga, urat-urat telah basah, dan pahala telah tetap, insya Allah.&rdquo;
+          Dhahaba al-zama&apos;u wa abtalat al-&apos;uruqu wa thabata al-ajru in syaa Allah. &ldquo;Telah hilang dahaga, urat-urat telah basah, dan pahala telah tetap, insya Allah.&rdquo;
         </p>
       </div>
     </div>
